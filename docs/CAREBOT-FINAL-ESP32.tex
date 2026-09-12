@@ -1,0 +1,115 @@
+\documentclass[10pt]{article}
+\usepackage[a4paper,margin=16mm]{geometry}
+\usepackage{fontspec}
+\setmainfont{Times New Roman}
+\usepackage{array}
+\usepackage{booktabs}
+\usepackage{enumitem}
+\usepackage{xcolor}
+\usepackage{fancyhdr}
+\usepackage{hyperref}
+
+\definecolor{caregreen}{HTML}{15322E}
+\definecolor{caregray}{HTML}{52645F}
+\hypersetup{colorlinks=true,urlcolor=caregreen,linkcolor=caregreen}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{3.5pt}
+\setlist{leftmargin=1.5em,itemsep=1pt,topsep=2pt}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyfoot[L]{\small CareBot final ESP32 model}
+\fancyfoot[R]{\small \thepage}
+\renewcommand{\headrulewidth}{0pt}
+
+\begin{document}
+
+\begin{center}
+  {\color{caregreen}\LARGE\bfseries CareBot Final ESP32 Model}\par
+  \vspace{3pt}
+  {\large Three medical-kit bins and two beam grippers}\par
+  \vspace{2pt}
+  {\color{caregray}\small Hardware and route matched to the final firmware}\par
+\end{center}
+
+\section*{Purpose}
+
+CareBot carries ten preloaded medical kits and two containment beams. Three gravity bins hold groups of 2, 6, and 2 kits. A servo opens each flap once and leaves it open. Two more servo grippers hold one beam across the front of the robot and one along its right side. At the final stop, both grippers open and the robot remains stopped.
+
+The robot starts in the top-right area facing left. It uses a front ultrasonic sensor to stop near walls and a rear downward-facing IR sensor to detect the black crossing near the middle delivery area. Turns and short corrections use calibrated motor timing.
+
+\section*{Final hardware}
+
+\renewcommand{\arraystretch}{1.1}
+\begin{tabular}{@{}p{0.48\textwidth}p{0.12\textwidth}p{0.31\textwidth}@{}}
+\toprule
+Component & Quantity & Job \\
+\midrule
+DOIT ESP32 DEVKIT V1 & 1 & Main controller \\
+DRV8833 dual motor-driver module & 1 & Controls both drive motors \\
+Dual-shaft 300 RPM DC geared motor & 2 & Left and right drive \\
+Front ultrasonic sensor & 1 & Wall-distance measurement \\
+Rear digital IR reflectance sensor & 1 & Black-crossing detection \\
+Positional servo & 5 & Three bin flaps and two beam grippers \\
+Start pushbutton & 1 & Starts one mission after reset \\
+Drive wheels and caster & 2 + 1 & Supports differential drive \\
+Main power switch & 1 & Disconnects the battery \\
+\bottomrule
+\end{tabular}
+
+The motors' rated voltage and stall current must be checked before choosing the battery and confirming the exact DRV8833 breakout. The servo supply must be regulated and sized for five servos. Servos must not draw power through the ESP32 board. All supplies and modules share ground.
+
+\section*{ESP32 pin map}
+
+\begin{tabular}{@{}ll@{}}
+\toprule
+GPIO & Connection \\
+\midrule
+25, 26 & DRV8833 AIN1, AIN2 for the left motor \\
+27, 14 & DRV8833 BIN1, BIN2 for the right motor \\
+23, 34 & Ultrasonic TRIG, ECHO \\
+35 & Rear IR digital output \\
+18, 19, 21 & Two-kit bin, six-kit bin, two-kit bin servos \\
+22, 13 & Right-side and front beam-gripper servos \\
+32 & Start button to ground, using the internal pull-up \\
+\bottomrule
+\end{tabular}
+
+GPIO34 and GPIO35 are input-only pins, which suits the two sensor inputs. A 5 V ultrasonic ECHO signal needs a divider before GPIO34. The planned divider is 10~k$\Omega$ from ECHO to GPIO34 and 15~k$\Omega$ from GPIO34 to ground. The IR output must also remain within the ESP32's 3.3 V input limit. Hold DRV8833 nSLEEP high if the breakout does not already provide a pull-up.
+
+\newpage
+\section*{Mission sequence}
+
+\begin{enumerate}
+  \item Start at the top right facing left. Drive toward the left wall and stop at the calibrated ultrasonic clearance.
+  \item Turn left to face down. Open the first flap and drop two kits near the top-left destination.
+  \item Drive down the left side. Detect the first valid transverse black crossing with the rear IR sensor, apply the calibrated outlet correction, and open the middle flap to drop six kits.
+  \item Continue toward the bottom wall. Stop at the calibrated clearance and open the third flap to drop the last two kits.
+  \item Turn left to face right. Apply the optional lane correction, then drive toward the right wall beside the beam area.
+  \item Stop at the single calibrated beam-drop position. Open both beam grippers, wait for the beams to fall, and remain stopped.
+\end{enumerate}
+
+The code releases a complete preloaded group; it does not count individual kits. The first black separator indicates entry to the middle area, so the rear sensor position and bin outlet position determine the correction after detection.
+
+\section*{Firmware behavior}
+
+The final sketch is \texttt{output/arduino/CareBotESP32/CareBotESP32.ino}. Select \textbf{DOIT ESP32 DEVKIT V1} in Arduino IDE and use the Espressif Arduino-ESP32 3.x board package. No separate servo library is required.
+
+On boot, the program commands all five servos closed. The start button must first be released and then held for at least 40 ms. One press starts one mission; reset is required before another run. Sending \texttt{x} through Serial Monitor at 115200 baud stops the motors while USB remains connected. The main switch provides the physical power stop.
+
+The program stops on missing ultrasonic echoes, wall-target overshoot, missing markers, travel timeout, invalid settings, invalid servo commands, or a motor PWM failure. It requires three stationary wall readings within tolerance before accepting a wall stop. It does not have sensors to verify an empty bin or an upright beam.
+
+\section*{Values that must be measured}
+
+Before a field run, measure and update motor direction, loaded forward and reverse speed, left-turn duration, servo closed and open angles, wall clearances, the middle outlet correction, beam-lane shift, and the final beam-drop wall distance. The supplied values are examples. A 300 RPM motor label does not determine travel speed without the wheel diameter and loaded motor speed.
+
+The front ultrasonic sensor must see past or below the carried front beam. The rear IR sensor detects a crossing but cannot continuously steer along a line. Reverse movement has no rear obstacle sensor, and turns have no side-clearance sensor, so the loaded route must be checked physically.
+
+\section*{Verification status}
+
+The final source compiles for \texttt{esp32:esp32:esp32doit-devkit-v1} with Arduino-ESP32 3.3.5 and all warnings enabled. Host regression tests cover motor direction, sensor failures, wall overshoot, start debounce, marker handling, the full 2--6--2 route, open-only flaps, and stationary release of both beams. No physical robot run has been completed, so mechanical and navigation performance remain unverified.
+
+\section*{Second robot status}
+
+The second robot has not been built. Its retained future plan covers sample collection and delivery to the laboratory. That plan is stored separately in \texttt{docs/SECOND-ROBOT-FUTURE.md} so it cannot be confused with this final CareBot design.
+
+\end{document}
