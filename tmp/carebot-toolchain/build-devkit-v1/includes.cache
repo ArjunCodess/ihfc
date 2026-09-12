@@ -1,0 +1,60 @@
+[
+  {
+    "added_include_path": "C:\\Users\\USER\\AppData\\Local\\Arduino15\\packages\\esp32\\hardware\\esp32\\3.3.5\\cores\\esp32"
+  },
+  {
+    "added_include_path": "C:\\Users\\USER\\AppData\\Local\\Arduino15\\packages\\esp32\\hardware\\esp32\\3.3.5\\variants\\doitESP32devkitV1"
+  },
+  {
+    "compile": {
+      "source_path": "C:\\Users\\USER\\Desktop\\ihfc\\tmp\\carebot-toolchain\\build-devkit-v1\\sketch\\CareBotESP32.ino.cpp.merged",
+      "depfile_path": "C:\\Users\\USER\\Desktop\\ihfc\\tmp\\carebot-toolchain\\build-devkit-v1\\sketch\\CareBotESP32.ino.cpp.merged.libsdetect.d"
+    },
+    "compile_task": {
+      "args": [
+        "C:\\Users\\USER\\AppData\\Local\\Arduino15\\packages\\esp32\\tools\\esp-x32\\2511/bin/xtensa-esp32-elf-g++",
+        "-c",
+        "@C:\\Users\\USER\\AppData\\Local\\Arduino15\\packages\\esp32\\tools\\esp32-arduino-libs\\idf-release_v5.5-9bb7aa84-v2\\esp32/flags/cpp_flags",
+        "-w",
+        "-Os",
+        "-Werror=return-type",
+        "-w",
+        "-x",
+        "c++",
+        "-E",
+        "-CC",
+        "-DF_CPU=240000000L",
+        "-DARDUINO=10607",
+        "-DARDUINO_ESP32_DEV",
+        "-DARDUINO_ARCH_ESP32",
+        "-DARDUINO_BOARD=\"ESP32_DEV\"",
+        "-DARDUINO_VARIANT=\"doitESP32devkitV1\"",
+        "-DARDUINO_PARTITION_default",
+        "-DARDUINO_HOST_OS=\"windows\"",
+        "-DARDUINO_FQBN=\"esp32:esp32:esp32doit-devkit-v1\"",
+        "-DESP32=ESP32",
+        "-DCORE_DEBUG_LEVEL=0",
+        "-DARDUINO_USB_CDC_ON_BOOT=0",
+        "@C:\\Users\\USER\\AppData\\Local\\Arduino15\\packages\\esp32\\tools\\esp32-arduino-libs\\idf-release_v5.5-9bb7aa84-v2\\esp32/flags/defines",
+        "-IC:\\Users\\USER\\Desktop\\ihfc\\output\\arduino\\CareBotESP32",
+        "-iprefix",
+        "C:\\Users\\USER\\AppData\\Local\\Arduino15\\packages\\esp32\\tools\\esp32-arduino-libs\\idf-release_v5.5-9bb7aa84-v2\\esp32/include/",
+        "@C:\\Users\\USER\\AppData\\Local\\Arduino15\\packages\\esp32\\tools\\esp32-arduino-libs\\idf-release_v5.5-9bb7aa84-v2\\esp32/flags/includes",
+        "-IC:\\Users\\USER\\AppData\\Local\\Arduino15\\packages\\esp32\\tools\\esp32-arduino-libs\\idf-release_v5.5-9bb7aa84-v2\\esp32/dio_qspi/include",
+        "-IC:\\Users\\USER\\AppData\\Local\\Arduino15\\packages\\esp32\\hardware\\esp32\\3.3.5\\cores\\esp32",
+        "-IC:\\Users\\USER\\AppData\\Local\\Arduino15\\packages\\esp32\\hardware\\esp32\\3.3.5\\variants\\doitESP32devkitV1",
+        "@C:\\Users\\USER\\Desktop\\ihfc\\tmp\\carebot-toolchain\\build-devkit-v1/build_opt.h",
+        "@C:\\Users\\USER\\Desktop\\ihfc\\tmp\\carebot-toolchain\\build-devkit-v1/file_opts",
+        "C:\\Users\\USER\\Desktop\\ihfc\\tmp\\carebot-toolchain\\build-devkit-v1\\sketch\\CareBotESP32.ino.cpp.merged",
+        "-o",
+        "nul",
+        "-MMD",
+        "-MF",
+        "C:\\Users\\USER\\Desktop\\ihfc\\tmp\\carebot-toolchain\\build-devkit-v1\\sketch\\CareBotESP32.ino.cpp.merged.libsdetect.d"
+      ]
+    }
+  },
+  {
+    "missing_include_h": ""
+  }
+]

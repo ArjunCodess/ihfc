@@ -1,0 +1,390 @@
+/* CareBot: three preloaded flap bins (2, 6, 2) and two beam grippers.
+   Target: classic ESP32-WROOM DevKit, Arduino-ESP32 3.x, DRV8833.
+   Drive pair: existing dual-shaft 300 RPM DC geared motors.
+   Motor voltage/current and loaded travel speed still require verification.
+   No servo library required. See ../README.md before wiring/loading.
+   Serial: s = start once, x = stop; reset and reload for another run.
+   All distances/timings below require calibration on the actual robot.
+*/
+#include <Arduino.h>
+#include <math.h>
+#if !defined(CONFIG_IDF_TARGET_ESP32)
+#error "This pin map and PWM channel assignment require a classic ESP32-WROOM."
+#endif
+
+// DRV8833: AOUT1/2 = left motor, BOUT1/2 = right motor.
+// nSLEEP must be HIGH (3.3 V); check the breakout's pull-up and pin labels.
+constexpr uint8_t MOTOR_PINS[] = {25, 26, 27, 14}; // AIN1, AIN2, BIN1, BIN2
+constexpr uint8_t TRIG_PIN = 23, ECHO_PIN = 34, IR_PIN = 35;
+constexpr uint8_t START_PIN = 32; // one start button to GND; no stop button
+constexpr uint8_t SERVO_PINS[] = {18, 19, 21, 22, 13};
+// Servo indices: small A, six-kit bin, small B, right beam, front beam.
+constexpr int CLOSED_DEG[] = {15, 15, 15, 35, 35};
+constexpr int OPEN_DEG[] = {100, 100, 100, 110, 110};
+constexpr uint32_t SERVO_MIN_US = 1000, SERVO_MAX_US = 2000;
+constexpr int BLACK_LEVEL = LOW; // change to HIGH if your module is inverted
+constexpr bool INVERT_LEFT = false, INVERT_RIGHT = true;
+constexpr int DRIVE_PWM = 145, SLOW_PWM = 100, TURN_PWM = 125;
+constexpr int LEFT_TRIM = 0, RIGHT_TRIM = 0;
+constexpr uint32_t TURN_LEFT_MS = 580, TURN_RIGHT_MS = 580;
+constexpr float DRIVE_MM_PER_SECOND = 180.0f; // example only; measure at DRIVE_PWM
+constexpr float REVERSE_MM_PER_SECOND = 160.0f; // example only; measure separately
+constexpr uint32_t SETTLE_MS = 250, RELEASE_MS = 1100;
+constexpr uint32_t LEG_TIMEOUT_MS = 25000, PING_INTERVAL_MS = 65;
+constexpr uint32_t ECHO_TIMEOUT_US = 25000, LINE_STABLE_MS = 20;
+constexpr float MIN_CLEARANCE_MM = 100; // include ALL forward overhangs
+constexpr float FIRST_WALL_STOP_MM = 220, LAST_KIT_WALL_STOP_MM = 220;
+constexpr float WALL_TOLERANCE_MM = 8;
+
+// Start TOP RIGHT facing LEFT. Two route turns: LEFT -> DOWN -> RIGHT.
+// Both route turns are 90-degree left turns; lane corrections add paired turns.
+// Count transverse black markers after clearing the starting marker.
+// On the supplied map, the first left-side cross-line ENTERS the middle zone;
+// it is not its centre. Calibrate the outlet correction for the desired drop.
+constexpr unsigned MIDDLE_MARKER_NUMBER = 1;
+// At rear-IR detection, an outlet ahead of the IR is already past the line.
+// Negative means reverse. Example: outlet 80 mm ahead => approximately -80.
+constexpr float MIDDLE_OUTLET_CORRECTION_MM = 0;
+constexpr float FIRST_OUTLET_CORRECTION_MM = 0;
+constexpr float LAST_OUTLET_CORRECTION_MM = 0;
+
+// Beam geometry must be measured, not inferred from the drawing's scale.
+// The full route pauses after the kits until this is set true and values filled.
+constexpr bool BEAM_GEOMETRY_CONFIGURED = true;
+// Final leg faces RIGHT/east. Positive lane shift moves UP/north;
+// negative moves DOWN/south. Align the right beam to QZ's TOP boundary.
+constexpr float BEAM_LANE_SHIFT_MM = 0;
+// Ultrasonic distances to the RIGHT WALL at each pose, including gripper offsets.
+// Require: reference <= right-beam stop < front-beam stop, all >= clearance.
+constexpr float RIGHT_WALL_REFERENCE_MM = 220;
+constexpr float RIGHT_BEAM_STOP_MM = 300;
+constexpr float FRONT_BEAM_STOP_MM = 450;
+constexpr float EXIT_REVERSE_MM = 150;
+
+static_assert(DRIVE_PWM > 0 && DRIVE_PWM <= 255 && SLOW_PWM > 0 &&
+              SLOW_PWM <= DRIVE_PWM && TURN_PWM > 0 && TURN_PWM <= 255,
+              "Motor PWM values must be within 1..255.");
+static_assert(DRIVE_MM_PER_SECOND > 0 && REVERSE_MM_PER_SECOND > 0,
+              "Calibrated speeds must be positive.");
+static_assert(SERVO_MIN_US > 0 && SERVO_MAX_US > SERVO_MIN_US &&
+              SERVO_MAX_US < 20000, "Invalid servo pulse limits.");
+static_assert(MIDDLE_MARKER_NUMBER > 0, "Marker numbers start at one.");
+static_assert(TURN_LEFT_MS > 0 && TURN_LEFT_MS <= LEG_TIMEOUT_MS &&
+              TURN_RIGHT_MS > 0 && TURN_RIGHT_MS <= LEG_TIMEOUT_MS,
+              "Turn duration must fit within a travel leg.");
+
+bool aborted = false, attempted = false;
+bool motorAttached[4] = {false, false, false, false};
+bool startArmed = false, startHeld = false;
+uint32_t startPressMs = 0;
+bool released[5] = {false, false, false, false, false};
+uint32_t lastPingMs = 0;
+
+void stopMotors() {
+  for (unsigned i = 0; i < 4; ++i) {
+    uint8_t pin = MOTOR_PINS[i];
+    if (motorAttached[i]) {
+      if (ledcWrite(pin, 0)) continue;
+      // If PWM control fails, detach it before forcing the GPIO low.
+      ledcDetach(pin);
+      motorAttached[i] = false;
+      pinMode(pin, OUTPUT);
+    }
+    digitalWrite(pin, LOW);
+  }
+}
+
+bool fail(const char *reason) {
+  stopMotors();
+  if (!aborted) { Serial.print("STOP: "); Serial.println(reason); }
+  aborted = true;
+  return false;
+}
+
+bool checkStop() {
+  if (aborted) return false;
+  while (Serial.available()) {
+    char c = Serial.read();
+    if (c == 'x' || c == 'X') return fail("Serial stop.");
+  }
+  return true;
+}
+
+bool waitChecked(uint32_t durationMs) {
+  uint32_t start = millis();
+  while (millis() - start < durationMs) {
+    if (!checkStop()) return false;
+    delay(2);
+  }
+  return checkStop();
+}
+
+void setMotor(uint8_t in1, uint8_t in2, int speed, bool invert) {
+  speed = constrain(invert ? -speed : speed, -255, 255);
+  // Both inputs LOW = coast. Clear the old direction before applying PWM.
+  if (!ledcWrite(in1, 0) || !ledcWrite(in2, 0) ||
+      (speed > 0 && !ledcWrite(in1, speed)) ||
+      (speed < 0 && !ledcWrite(in2, -speed)))
+    fail("Motor PWM write failed.");
+}
+
+void drive(int left, int right) {
+  if (aborted) { stopMotors(); return; }
+  setMotor(MOTOR_PINS[0], MOTOR_PINS[1], left, INVERT_LEFT);
+  if (aborted) return;
+  setMotor(MOTOR_PINS[2], MOTOR_PINS[3], right, INVERT_RIGHT);
+}
+
+void straight(int pwm) {
+  if (pwm == 0) { stopMotors(); return; }
+  int sign = pwm < 0 ? -1 : 1;
+  drive(sign * constrain(abs(pwm) + LEFT_TRIM, 0, 255),
+        sign * constrain(abs(pwm) + RIGHT_TRIM, 0, 255));
+}
+
+bool servoAngle(unsigned index, int degrees) {
+  if (!checkStop()) return false;
+  if (index >= 5 || degrees < 0 || degrees > 180)
+    return fail("Invalid servo index or angle.");
+  uint32_t pulseUs = SERVO_MIN_US +
+    (SERVO_MAX_US - SERVO_MIN_US) * constrain(degrees, 0, 180) / 180;
+  // 50 Hz => 20,000 us; 16-bit PWM is supported by classic ESP32.
+  if (!ledcWrite(SERVO_PINS[index], (pulseUs * 65535UL) / 20000UL))
+    return fail("Servo PWM write failed.");
+  return true;
+}
+
+float rangeMm() {
+  uint32_t elapsed = millis() - lastPingMs;
+  if (elapsed < PING_INTERVAL_MS && !waitChecked(PING_INTERVAL_MS - elapsed))
+    return NAN;
+  if (!checkStop()) return NAN;
+  lastPingMs = millis();
+  digitalWrite(TRIG_PIN, LOW); delayMicroseconds(2);
+  digitalWrite(TRIG_PIN, HIGH); delayMicroseconds(10);
+  digitalWrite(TRIG_PIN, LOW);
+  uint32_t us = pulseIn(ECHO_PIN, HIGH, ECHO_TIMEOUT_US);
+  // Missing echo is UNKNOWN, never an instruction to continue moving.
+  if (us == 0) return NAN;
+  float mm = us * 0.343f / 2.0f;
+  return mm >= 20 && mm <= 4000 ? mm : NAN;
+}
+
+bool settle() { stopMotors(); return waitChecked(SETTLE_MS); }
+
+// Move toward a wall OR reverse away from it, selected from the initial reading.
+// Confirm three target readings while stopped; bound the entire maneuver.
+bool wallDistance(float targetMm) {
+  stopMotors();
+  if (!isfinite(targetMm) || targetMm < MIN_CLEARANCE_MM + WALL_TOLERANCE_MM ||
+      targetMm > 4000 - WALL_TOLERANCE_MM)
+    return fail("Invalid wall target.");
+  float initial = rangeMm();
+  if (!isfinite(initial)) return fail("No wall reading at start of move.");
+  if (initial < MIN_CLEARANCE_MM) return fail("Insufficient front clearance.");
+  bool forward = initial > targetMm;
+  unsigned confirmed = 0, invalid = 0;
+  uint32_t start = millis();
+  while (millis() - start < LEG_TIMEOUT_MS) {
+    if (!checkStop()) return false;
+    float distance = rangeMm();
+    if (!isfinite(distance)) {
+      stopMotors(); confirmed = 0;
+      if (++invalid >= 3) return fail("Ultrasonic lost the wall.");
+      continue;
+    }
+    invalid = 0;
+    if (distance < MIN_CLEARANCE_MM) return fail("Front clearance limit.");
+    bool reached = fabsf(distance - targetMm) <= WALL_TOLERANCE_MM;
+    if (reached) {
+      stopMotors();
+      if (++confirmed >= 3) return settle();
+    } else {
+      confirmed = 0;
+      // Do not release a load merely because we crossed the target coordinate.
+      if ((forward && distance < targetMm - WALL_TOLERANCE_MM) ||
+          (!forward && distance > targetMm + WALL_TOLERANCE_MM))
+        return fail("Wall target overshot. Reduce speed or recalibrate.");
+      int pwm = fabsf(distance - targetMm) < 150 ? SLOW_PWM : DRIVE_PWM;
+      straight(forward ? pwm : -pwm);
+    }
+  }
+  return fail("Wall move timed out.");
+}
+
+bool moveMm(float mm) {
+  stopMotors();
+  if (!checkStop()) return false;
+  if (!isfinite(mm)) return fail("Invalid timed distance.");
+  if (fabsf(mm) < 1) return settle();
+  float durationMs = 1000 * fabsf(mm) /
+    (mm > 0 ? DRIVE_MM_PER_SECOND : REVERSE_MM_PER_SECOND);
+  if (!isfinite(durationMs) || durationMs > LEG_TIMEOUT_MS)
+    return fail("Timed move exceeds limit.");
+  uint32_t duration = uint32_t(ceilf(durationMs));
+  // Validate the forward path BEFORE starting the motion timer.
+  if (mm > 0) {
+    float distance = rangeMm();
+    if (!isfinite(distance)) return fail("No echo before forward offset.");
+    if (distance <= MIN_CLEARANCE_MM) return fail("Obstacle before offset.");
+  }
+  straight(mm > 0 ? DRIVE_PWM : -DRIVE_PWM);
+  if (!checkStop()) return false;
+  uint32_t start = millis();
+  // Reverse has no obstacle sensor. Use only on a verified clear return path.
+  while (millis() - start < duration) {
+    if (!checkStop()) return false;
+    uint32_t elapsed = millis() - start;
+    if (elapsed >= duration) break;
+    uint32_t remaining = duration - elapsed;
+    // Never start a blocking echo measurement too near the stop deadline.
+    if (mm > 0 && millis() - lastPingMs >= PING_INTERVAL_MS &&
+        remaining > (ECHO_TIMEOUT_US + 999) / 1000 + 2) {
+      float distance = rangeMm();
+      if (!isfinite(distance)) return fail("No echo during forward offset.");
+      if (distance < MIN_CLEARANCE_MM) return fail("Obstacle during offset.");
+    }
+    if (millis() - start < duration) delay(1);
+  }
+  return settle();
+}
+
+bool turn90(bool left) {
+  if (!checkStop()) return false;
+  // Timing cannot measure angle or side clearance. Check the loaded swept area.
+  drive(left ? -TURN_PWM : TURN_PWM, left ? TURN_PWM : -TURN_PWM);
+  if (!waitChecked(left ? TURN_LEFT_MS : TURN_RIGHT_MS)) return false;
+  return settle();
+}
+
+bool middleMarker() {
+  stopMotors();
+  float initial = rangeMm();
+  if (!isfinite(initial)) return fail("No echo before seeking marker.");
+  if (initial <= LAST_KIT_WALL_STOP_MM) return fail("Wall before middle marker.");
+  Serial.println("Left middle: seek entry marker for six-kit delivery.");
+  uint32_t start = millis(), changeMs = start;
+  bool raw = digitalRead(IR_PIN) == BLACK_LEVEL, stable = raw;
+  bool armed = false;
+  unsigned count = 0;
+  while (millis() - start < LEG_TIMEOUT_MS) {
+    if (!checkStop()) return false;
+    if (millis() - lastPingMs >= PING_INTERVAL_MS) {
+      float distance = rangeMm();
+      if (!isfinite(distance)) return fail("No echo while seeking line.");
+      if (distance <= LAST_KIT_WALL_STOP_MM) return fail("Wall before middle marker.");
+    }
+    bool now = digitalRead(IR_PIN) == BLACK_LEVEL;
+    if (now != raw) { raw = now; changeMs = millis(); }
+    if (millis() - changeMs >= LINE_STABLE_MS) {
+      if (!raw) armed = true; // must see clear floor before counting black
+      if (raw && !stable && armed) {
+        armed = false;
+        if (++count == MIDDLE_MARKER_NUMBER) return settle();
+      }
+      stable = raw;
+    }
+    straight(SLOW_PWM); // slower crossing gives the rear sensor time to sample
+    delay(2);
+  }
+  return fail("Middle marker not detected before timeout.");
+}
+
+bool releaseLoad(unsigned index) {
+  if (index >= 5 || released[index]) return fail("Invalid or repeated release.");
+  if (!settle()) return false;
+  Serial.print("Release servo "); Serial.println(index + 1);
+  if (!servoAngle(index, OPEN_DEG[index])) return false;
+  released[index] = true;
+  if (!waitChecked(RELEASE_MS)) return false;
+  // Bins close; beam fingers stay open while the robot withdraws.
+  if (index < 3 && !servoAngle(index, CLOSED_DEG[index])) return false;
+  return waitChecked(SETTLE_MS);
+}
+
+bool runMission() {
+  // Reject invalid enabled beam geometry before starting the kit route.
+  if (BEAM_GEOMETRY_CONFIGURED &&
+      !(isfinite(BEAM_LANE_SHIFT_MM) &&
+        RIGHT_WALL_REFERENCE_MM >= MIN_CLEARANCE_MM + WALL_TOLERANCE_MM &&
+        RIGHT_BEAM_STOP_MM >= RIGHT_WALL_REFERENCE_MM &&
+        FRONT_BEAM_STOP_MM > RIGHT_BEAM_STOP_MM + 2 * WALL_TOLERANCE_MM &&
+        FRONT_BEAM_STOP_MM <= 4000 - WALL_TOLERANCE_MM &&
+        EXIT_REVERSE_MM >= 0 && isfinite(EXIT_REVERSE_MM)))
+    return fail("Invalid beam geometry. Correct settings before starting.");
+  Serial.println("Top right -> top left wall; turn down; drop two kits.");
+  if (!wallDistance(FIRST_WALL_STOP_MM) || !turn90(true) ||
+      !moveMm(FIRST_OUTLET_CORRECTION_MM) || !releaseLoad(0)) return false;
+  if (!middleMarker() || !moveMm(MIDDLE_OUTLET_CORRECTION_MM) ||
+      !releaseLoad(1)) return false;
+  Serial.println("Bottom left wall: drop last two kits.");
+  if (!wallDistance(LAST_KIT_WALL_STOP_MM) ||
+      !moveMm(LAST_OUTLET_CORRECTION_MM) || !releaseLoad(2)) return false;
+  if (!BEAM_GEOMETRY_CONFIGURED)
+    return fail("Kits complete. Set measured beam geometry to enable beam route.");
+  Serial.println("Turn left to face right; align lane above bottom-right quarantine.");
+  if (!turn90(true)) return false;
+  if (fabsf(BEAM_LANE_SHIFT_MM) >= 1) {
+    bool north = BEAM_LANE_SHIFT_MM > 0;
+    if (!turn90(north) || !moveMm(fabsf(BEAM_LANE_SHIFT_MM)) ||
+        !turn90(!north)) return false;
+  }
+  if (!wallDistance(RIGHT_WALL_REFERENCE_MM)) return false;
+  Serial.println("Place right beam, reverse, place front beam.");
+  if (!wallDistance(RIGHT_BEAM_STOP_MM) || !releaseLoad(3) ||
+      !wallDistance(FRONT_BEAM_STOP_MM) || !releaseLoad(4) ||
+      !moveMm(-EXIT_REVERSE_MM)) return false;
+  Serial.println("Mission complete. Reset and reload before another run.");
+  return true;
+}
+
+void setup() {
+  Serial.begin(115200);
+  for (uint8_t pin : MOTOR_PINS) { pinMode(pin, OUTPUT); digitalWrite(pin, LOW); }
+  pinMode(TRIG_PIN, OUTPUT); digitalWrite(TRIG_PIN, LOW);
+  pinMode(ECHO_PIN, INPUT); pinMode(IR_PIN, INPUT);
+  pinMode(START_PIN, INPUT_PULLUP);
+  // Motor inputs use channels 0..3; servos use 8..12 on the other group.
+  for (unsigned i = 0; i < 4; ++i) {
+    if (!ledcAttachChannel(MOTOR_PINS[i], 20000, 8, i)) {
+      fail("Motor PWM allocation failed."); return;
+    }
+    motorAttached[i] = true;
+    if (!ledcWrite(MOTOR_PINS[i], 0)) {
+      fail("Motor PWM initialization failed."); return;
+    }
+  }
+  for (unsigned i = 0; i < 5; ++i) {
+    if (!ledcAttachChannel(SERVO_PINS[i], 50, 16, 8 + i)) {
+      fail("Servo PWM allocation failed."); return;
+    }
+    if (!servoAngle(i, CLOSED_DEG[i])) return;
+  }
+  if (!waitChecked(800)) return;
+  Serial.println("Ready. Load bins 2/6/2. Press START or send s. x stops.");
+}
+
+void loop() {
+  stopMotors();
+  if (aborted || attempted) { delay(10); return; }
+  bool start = false;
+  bool pressed = digitalRead(START_PIN) == LOW;
+  if (!pressed) { startArmed = true; startHeld = false; }
+  else if (startArmed) {
+    if (!startHeld) { startHeld = true; startPressMs = millis(); }
+    start = millis() - startPressMs >= 40;
+  }
+  while (Serial.available()) {
+    char c = Serial.read();
+    if (c == 'x' || c == 'X') { fail("Serial stop."); return; }
+    if (c == 's' || c == 'S') start = true;
+  }
+  if (start && checkStop()) {
+    attempted = true;
+    runMission();
+    stopMotors();
+  }
+  delay(5);
+}
+
+

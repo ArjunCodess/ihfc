@@ -1,0 +1,89 @@
+# CareBot ESP32 code
+
+Open `CareBotESP32/CareBotESP32.ino` in Arduino IDE. This implements the new route in your message, including the photographed chassis with a transverse front beam and a lengthwise right beam. The old document's Uno, camera and 45-degree branch are not used.
+
+The sketch uses a DOIT ESP32 DEVKIT V1 and your selected DRV8833 motor driver, with two existing dual-shaft 300 RPM DC geared motors. Their rated voltage and stall current are still unknown, so driver suitability and battery selection need those specifications. The 300 RPM label alone does not determine loaded travel speed or torque. There is one start button and no physical stop button; Serial x remains available while connected. Select **DOIT ESP32 DEVKIT V1**, install **esp32 by Espressif Systems 3.x**, and use Serial Monitor at **115200 baud**. No extra servo library is needed.
+
+## What it does
+
+1. Start at the top right facing left. Drive to the left wall, stop with clearance at the top left, turn left to face down, and open bin A containing two kits.
+2. Drive down the left side until the rear IR detects the configured transverse black marker. Correct the outlet position into the left-middle delivery area, then open the middle bin containing six kits.
+3. Continue down to the bottom wall and open bin B containing two kits at the bottom left.
+4. Turn left to face right. If necessary, shift up to align the right beam with the top boundary of quarantine, then continue right toward the right wall beside the bottom-right beam area.
+5. Stop at `BEAM_DROP_WALL_MM` from the right wall and command both beam grippers open, letting both beams drop from the same robot position.
+6. Stay stopped with all five servos open. Reset closes the servos before reloading for another run.
+
+The main route has two 90-degree left turns, at the top left and bottom left. Optional lane correction adds a turn out and a turn back. Each kit servo releases a whole preloaded group once; there is no kit counter or individual dispensing mechanism. The sketch uses a gravity flap. A throwing linkage would need different servo positions and motion timing.
+
+On this image, the first horizontal black separator on the left is the entrance to the middle area, not a marker at its centre. The default first-marker setting uses that entrance. Set `MIDDLE_OUTLET_CORRECTION_MM` so the outlet lands inside the middle area; a positive correction moves farther down, and a negative correction reverses up. The continuous vertical black line alone cannot identify the middle stopping point.
+
+The complete kit-and-beam route is enabled. `BEAM_DROP_WALL_MM = 220` is an example wall clearance, just like the kit wall stops; calibrate it on the actual robot. Each servo only opens when delivering. There is no automatic re-closing, beam repositioning, or withdrawal after dropping the beams.
+
+## Wiring for the assumed hardware
+
+| Device | ESP32 GPIO |
+| --- | --- |
+| DRV8833 AIN1 / AIN2, left motor PWM | 25 / 26 |
+| DRV8833 BIN1 / BIN2, right motor PWM | 27 / 14 |
+| Ultrasonic TRIG / ECHO | 23 / 34 |
+| Rear IR digital output | 35 |
+| Bin A / middle bin / bin B servo signal | 18 / 19 / 21 |
+| Right / front beam gripper servo signal | 22 / 13 |
+| Start button to GND | 32 |
+
+Connect AOUT1/AOUT2 to the left motor and BOUT1/BOUT2 to the right motor. Connect VM to a supply matched to the motors and within the DRV8833 operating range of 2.7–10.8 V. Connect nSLEEP to 3.3 V if the breakout does not already hold it high. PWM goes directly to the four input pins; GPIO16 and GPIO17 are unused. There are no L298N enable or regulator jumpers in this wiring. Add input pull-downs if the module does not already provide them, so reset leaves both motor bridges off.
+
+Choose a documented breakout whose continuous and startup/stall-current capability matches the motor pair. DRV8833 current ratings depend on package and board cooling; a generic 2 A label is not a continuous rating for every board. The existing motors are selected for reuse, but their electrical compatibility has not been established from the 300 RPM description.
+
+Use a separate regulated servo supply sized for all five servos, and join its ground to the ESP32 and motor-driver grounds. Do not power the servos from ESP32 3.3 V. For a 5 V HC-SR04, use a divider on ECHO: ECHO -> 10 kΩ -> GPIO34 -> 15 kΩ -> GND, giving about 3 V. GPIO35 also needs a 3.3 V-compatible IR output; it has no internal pull-up. If the module has an open-collector output, provide an external pull-up to 3.3 V. The motor-input pull-downs described above keep the motors off during reset.
+
+The front ultrasonic must see past or below the loaded front beam. If it sees the beam itself, the wall route cannot work. The rear IR must point down at the floor. Its job is to detect crossing markers; one binary sensor does not continuously correct steering or recover position after a bad turn.
+
+## Beam placement and the photograph
+
+Use the orientation of your latest field image: start at the top right, kits down the left side, and quarantine at the bottom right. After traveling down the kit side and turning left, the robot faces right/east; its right side faces down/south. The right beam runs horizontally along quarantine's top boundary, and the front beam runs vertically along its left boundary. The two outer walls complete the corner. The image labels the field 1143 mm wide and 1181 mm high, but those dimensions do not establish gripper offsets or exact sensor stop distances.
+
+At the final stop, both grippers receive their open commands back-to-back. The robot waits for the beams to drop and remains stopped. There is no separate stop position for each beam and no reverse movement after release.
+
+`BEAM_LANE_SHIFT_MM` can align the approach lane above the bottom-right area before the final drive; its default is zero. `BEAM_DROP_WALL_MM` determines the one final stop measured from the front ultrasonic to the right wall. Both beam mounts must therefore put their loads over the intended landing positions at that same stop. Opening the jaws must leave both beams clear of the robot without requiring it to withdraw. A single opening command cannot correct a bad mounting position or guarantee an upright landing.
+
+## Calibration
+
+Start with the wheels raised and empty mechanisms. On boot, all five servos move to their closed positions; keep fingers clear and load afterward. Release START after power-up, then hold it for at least 40 ms, or send `s`, to begin. A button held during power-up or a brief contact bounce does not start the robot. Send `x` over the connected Serial Monitor to stop; restart requires a reset. An accessible main power switch can disconnect the battery when the robot is running without a computer. The Serial stop command halts the motors and leaves the grippers holding their current positions. It is a software stop, not a power disconnect.
+
+1. Check motor direction using `INVERT_LEFT` and `INVERT_RIGHT`. Adjust `LEFT_TRIM` and `RIGHT_TRIM` for straight travel, then measure forward and reverse millimetres per second at `DRIVE_PWM`.
+2. Measure `TURN_LEFT_MS` and `TURN_RIGHT_MS` for actual 90-degree turns with the full load. The example 580 ms is not a measured turn for your robot.
+3. Adjust `CLOSED_DEG`, `OPEN_DEG`, pulse limits and `RELEASE_MS` with empty flaps first, then the actual 2/6/2 kit loads. The flap stays open after release; reset it only before reloading.
+4. Set wall clearances from the ultrasonic face, accounting for the front beam's overhang and stopping distance. Tune first and final kit outlet corrections to land inside their areas.
+5. Check `BLACK_LEVEL` and `MIDDLE_MARKER_NUMBER`. The sensor must see clear floor before the marker; a continuous longitudinal line does not count as a crossing. The sensor samples about every 2 ms except during an ultrasonic reading, which can block for 25 ms. Use a crossing speed and marker width that leave time for the 20 ms debounce.
+6. Set `MIDDLE_OUTLET_CORRECTION_MM`. If the outlet is 80 mm ahead of the rear sensor and should drop on the line, begin with approximately -80 mm and adjust for coasting. Zero means the outlet's ahead-of-line position is already the desired drop point. Reverse corrections need a clear path because the IR is not an obstacle detector.
+7. Measure the beam lane and the single final wall clearance. Enter `BEAM_LANE_SHIFT_MM` and `BEAM_DROP_WALL_MM`, and confirm both beams fall clear when the robot stays still.
+
+Every travel leg has a timeout. Missing ultrasonic echoes stop travel instead of being treated as open space. Three stationary readings within the configured distance tolerance confirm a wall stop. Overshooting outside that tolerance stops the run instead of authorizing a delivery, but ultrasonic cannot distinguish a wall from another object, so this assumes a clear route with visible walls. Turns and lateral moves remain sensitive to wheel slip and battery level without encoders or a gyro.
+
+## API references
+
+Validation: host C++ regression tests passed with warnings treated as errors, including the complete kit-and-beam route, flaps staying open, and stationary beam release. The actual ESP32 build is recorded in `REVIEW.md`. No physical robot testing has been performed.
+
+PWM setup follows [Espressif's Arduino-ESP32 LEDC API](https://docs.espressif.com/projects/arduino-esp32/en/latest/api/ledc.html). Motor control follows the [TI DRV8833 datasheet](https://www.ti.com/lit/ds/symlink/drv8833.pdf). Four motor-input PWM channels and five servo channels are allocated on the DOIT ESP32 DEVKIT V1; this pin map is not for an ESP32-CAM, C3 or S3.
+
+
+## Gripper options and current quantities
+
+Use two gripper mechanisms, one at the front and one at the right, each with one positional servo. These are the same two gripper servos already counted in the total of five; the other three operate the bins. Buy or print the mechanisms, not both sets.
+
+The Amazon listing and Thingiverse model could not be read well enough to verify jaw opening, servo inclusion, mounting dimensions or load capacity. Do not assume the Amazon package includes an MG90S. For a printed mechanism, check the exact servo body and horn fit before printing both copies. Neither option is approved for the beam load from a product name alone.
+
+For the documented 60 × 20 mm beam cross-section, jaws gripping across the narrow faces need to open beyond 20 mm with clearance. Grip near the beam's lengthwise centre and use broad padded contacts to resist rotation. A retaining lip or shaped jaw can carry weight without relying only on friction, but it must withdraw completely when opened so the beam can fall free. Test one mechanism with the actual beam, through turns and release, before duplicating it.
+
+Current electronics: one DOIT ESP32 DEVKIT V1, one DRV8833 module, two existing dual-shaft 300 RPM DC geared motors, five servos, one front ultrasonic sensor, one rear downward IR sensor, and one start button. Add battery and suitable regulated supplies, wiring and a main power switch. No separate stop pushbutton is used.
+
+## Remaining build items
+
+Keep five positional servos total, three flap mechanisms, two beam gripper mechanisms, one DOIT ESP32 DEVKIT V1, one front ultrasonic sensor, one rear IR sensor and one start button. Add two wheels matching the motor shafts, one caster, two motor mounts and the chassis. The second shaft on each motor does not require a second motor driver or an additional drive wheel.
+
+The remaining power parts are a motor-compatible battery pack and matching charger, regulated power for the ESP32 and five servos, a main power switch, and suitable connectors and wiring. Final regulator current depends on the servo models and loads. Include the ultrasonic echo divider and common ground described above. Do not power the servos through the ESP32 board.
+
+Measure wheel diameter and loaded speed before setting timed movements. The 300 RPM specification is not a command to drive at full speed: use PWM for slower approach and marker crossings, and check that the loaded robot still starts and turns reliably. All existing speed and turn-time constants are uncalibrated examples.
+
+

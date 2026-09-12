@@ -1,0 +1,421 @@
+ CareBot and SealBot
+ Complete architecture and purchasing plan
+
+ ESP32-CAM-led control. Shared kit-and-patient lift with seven tilted boxes. Raised-flap beam grippers. JCB disc loader
+ and indexed belt conveyor.
+
+
+
+
+       Shared mouth                 Belt lift               Sensor cell                 Selector                   7 boxes
+
+
+
+   Kits and patients use one lift, one reading cell, and one selector.
+
+
+
+
+             3 kit boxes: H 6 | PCC-A 2 | PCC-B 2                         4 patient boxes: red | green | yellow-A | yellow-B
+
+
+
+
+   Every box is tilted and has its own simple servo outlet gate for batch dumping.
+
+
+
+ A complete mechanical, electrical, firmware, parts, pricing, and prototype plan for the existing two-robot school project.
+
+ Status: engineering proposal. Clearances, slopes, sensor thresholds and mission timing require tests with the real
+ pieces and field.
+
+ Complete new-build planning total: Rs 20,700, including shipping and repair reserve.
+
+
+
+
+CareBot / SealBot | Complete architecture and purchasing plan | 6 September 2026                                               1
+ Revised concept | 6 September 2026 | All dimensions in mm unless stated
+
+ This is the team's architecture, kept simple. CareBot picks up a kit or coloured piece, lifts it to a colour sensor, drops it
+ into the correct tilted box, and later empties that box with a servo gate. SealBot has two beam grippers at the lower
+ front, with the movable input flap directly above them. It places the beams first, then uses that flap and a small
+ belt-and-tray conveyor to collect and release the discs.
+
+
+ 1. Complete architecture
+
+   Robot                  Front                         Inside                                          Rear
+
+   CareBot                One V-shaped pickup           Colour sensor, one servo sorting flap, tilted   One simple servo gate on each box
+                          mouth and two rubber lift     storage boxes
+                          belts
+
+   SealBot                Two beam grippers at the      One rubber-belt conveyor with three disc        Fixed output flap with one servo
+                          bottom, JCB input flap        trays                                           gate and a line sensor
+                          directly above them
+
+
+ The ESP32-CAM is the main controller on both robots. It handles navigation, object approach, line tracking, position
+ checks, and the complete match sequence. The small colour and line sensors only give close-range readings.
+
+
+ 2. CareBot
+ Simple pickup
+ Use two vertical rubber belts facing each other at the front. Each belt runs around two ordinary pulleys. One N20
+ geared motor turns both belts inward and upward. A V-shaped mouth guides a kit or coloured piece between them, and
+ the belts carry it to the top.
+
+ Use wide rubber bands, timing belts, or rubber strips joined into loops. One belt mount can move slightly against a
+ spring so both piece sizes fit. This is the simple replacement for caterpillar wheels.
+
+ Sensor and boxes
+ At the top, the piece stops in front of a TCS34725 colour sensor. Directly below the sensor, one servo flap points
+ toward the required storage box. A second servo opens the small floor under the piece, so it falls into that box.
+
+ Use seven tilted boxes because the game pieces have seven final groups:
+
+  - Three kit boxes hold 6 for H, 2 for PCC-A, and 2 for PCC-B.
+
+  - Four coloured-piece boxes hold red for H, green for RZ, yellow for PCC-A, and yellow for PCC-B.
+
+ The kits can use a simple count. The first six go into the H box, the next two into PCC-A, and the final two into PCC-B.
+ The sensor sorts the coloured pieces. Every box is already tilted toward its outlet and has one SG90 servo gate.
+
+ CareBot sequence
+  1. Pick up one piece. The camera centres the front mouth, then the rubber belts pull the piece upward.
+
+  2. Read it. The lift stops at the colour sensor.
+
+  3. Select its box. One servo points the sorting flap toward the correct box.
+
+  4. Store it. The floor servo opens and the piece falls into the tilted box.
+
+  5. Dump the group. At the destination, the camera or line sensor confirms position and the box gate opens. Gravity
+     drops the complete group into the area.
+
+ That is the whole CareBot mechanism. There is one lift, one sensor point, one sorting flap, and tilted boxes with gates.
+
+
+
+
+CareBot / SealBot | Complete architecture and purchasing plan | 6 September 2026                                                           2
+ 3. SealBot
+ Exact front layout
+ The two grippers sit at the lowest front portion of the robot. They hold the two wooden beams standing on the field. The
+ movable input flap sits directly above the grippers. The output flap stays fixed at the rear.
+
+ The input flap remains raised during the complete beam task, so it does not hit the beams or block the grippers.
+
+ Beam sequence
+  1. Both beams start standing in the two front grippers.
+
+  2. SealBot drives to the first beam area and opens the first gripper.
+
+  3. SealBot drives to the second beam area and opens the second gripper.
+
+  4. Both beams remain standing in their areas. The beam task is finished.
+
+  5. Only now can the input flap move down.
+
+ There is no later beam push, no staging step, and no beam mechanism inside the robot.
+
+ Disc input flap
+ The input flap moves like a small JCB bucket. A metal-gear servo lowers it to the field, the robot drives forward until a
+ disc sits on the flap, and the servo raises the flap. At the top, the flap tips the disc onto the first tray inside the robot.
+
+ Simple conveyor without caterpillar wheels
+ Use one homemade loop conveyor. Two rubber belts or timing belts run around a front shaft and a rear shaft. Attach
+ three small flat trays across the belts. One N20 geared motor turns the rear shaft.
+
+ After the flap loads a disc, the motor moves the belt forward by one tray position. The next empty tray arrives below the
+ input flap, while the loaded disc moves toward the rear. A small IR sensor or microswitch marks each stopping position.
+
+ This gives the same action as the proposed caterpillar wheel and tray, but it only needs ordinary pulleys, rubber belts, a
+ motor, and three flat trays.
+
+
+      SealBot side layout, front at left
+
+
+
+             input flap
+                                                       simple belt + three trays
+           moves up/down                                                                                            fixed rear
+                                                                                                                   output flap
+                                                                                                                   + line sensor
+
+
+         grip A        grip B
+
+
+
+       front grippers below flap
+
+
+      Beam phase: flap stays up. Disc phase: flap loads the front tray and the belt moves each disc to the rear.
+
+ Figure 1. The grippers are at the lower front, the movable input flap is directly above them, and the output flap stays fixed at the rear.
+
+
+ Rear output
+ The rear output flap stays in one place. A downward line sensor sees the required black mark or laboratory position.
+ The ESP32-CAM handles the approach, then the line sensor handles the final stop.
+
+
+
+
+CareBot / SealBot | Complete architecture and purchasing plan | 6 September 2026                                                              3
+ When the correct position is detected, one SG90 opens the output gate and one disc drops. The gate closes, then the
+ conveyor moves forward by one tray position. Repeat this at the next two positions.
+
+
+ 4. SealBot sequence
+  1. Carry the beams. Keep the input flap raised and hold both beams in the two lower front grippers.
+
+  2. Drop the beams. Open each gripper at its area. The beam task ends here.
+
+  3. Enable the flap. Lower the input flap only after both grippers are empty.
+
+  4. Collect a disc. Scoop it with the flap and tip it onto the front tray.
+
+  5. Move the tray. Advance the rubber-belt conveyor by one position.
+
+  6. Reach an output point. Use the camera for navigation and the rear line sensor for the final stop.
+
+  7. Drop one disc. Open the fixed rear output gate, close it, then advance the next tray.
+
+
+ 5. Camera and electronics
+ Each robot uses one ESP32-CAM as its brain. No Arduino Nano is required.
+
+
+   Part                                        Job
+
+   ESP32-CAM                                   Camera vision, navigation, line following, mission order, and all decisions
+
+   PCA9685 servo board                         Produces the servo signals commanded by the ESP32-CAM
+
+   PCF8575 I/O board                           Adds inputs for the line sensors, limit switches, and tray-position sensor
+
+   DRV8833 motor drivers                       Drive the wheels, CareBot lift motor, and SealBot conveyor motor
+
+   TCS34725                                    Reads the CareBot piece colour at the top of the lift
+
+   Five-channel line sensor                    Follows field lines and stops SealBot's rear output over each disc position
+
+
+ The ESP32-CAM does the thinking. The other boards only drive motors, drive servos, or return sensor values.
+
+
+ 6. Actuator count
+
+   Robot                          DC motors                                                   Servos
+
+   CareBot                        2 drive motors and 1 lift motor                             1 sensor-floor servo, 1 sorting-flap servo, and 7
+                                                                                              box-gate servos
+
+   SealBot                        2 drive motors and 1 conveyor motor                         2 beam-gripper servos, 1 JCB-flap servo, and 1
+                                                                                              output-gate servo
+
+
+ The complete build uses thirteen working servos. Buy three spare SG90 servos and one spare MG90S because small
+ servos are easy to damage during testing.
+
+
+ 7. Complete parts and pricing
+ These are planning prices checked on 6 September 2026. Supplier prices and shipping can change.
+
+ Electronics and motion
+
+
+
+
+CareBot / SealBot | Complete architecture and purchasing plan | 6 September 2026                                                                  4
+   Part                               Quantity     Unit Rs        Subtotal Rs      Use
+
+   ESP32-CAM with camera              2            700            1,400            One per robot
+
+   USB-UART programmer                1            200            200              Programs both ESP32-CAM boards
+
+   PCA9685 servo board                2            499            998              One per robot
+
+   PCF8575 I/O board                  2            229            458              One per robot
+
+   DRV8833 motor-driver board         4            89             356              Two per robot
+
+   2WD chassis kit with motors        2            349            698              One base per robot
+   and wheels
+
+   N20 geared motor                   2            250            500              CareBot lift and SealBot conveyor
+
+   SG90 servo                         14           119            1,666            Eleven working and three spare
+
+   MG90S metal-gear servo             3            179            537              Two working and one spare
+
+   Electronics and motion subtotal                                6,813
+
+
+
+
+ Sensors and controls
+
+   Part                               Quantity     Unit Rs        Subtotal Rs      Use
+
+   TCS34725 colour sensor             1            269            269              CareBot sensor point
+
+   Five-channel line sensor           2            210            420              One per robot
+
+   Wheel encoder sensor               4            60             240              Two per robot
+
+   IR or reflective position sensor   6            50             300              Lift, flap, conveyor, and output checks
+
+   Microswitch                        10           20             200              Grippers, gates, and end stops
+
+   Start pushbutton                   2            25             50               One per robot
+
+   Emergency-stop switch              2            150            300              One per robot
+
+   Sensors and controls subtotal                                  1,779
+
+
+
+
+ Power and wiring
+
+   Part                               Quantity     Unit Rs        Subtotal Rs      Use
+
+   7.4 V 2200 mAh 2S LiPo             2            1,399          2,798            One per robot
+   battery
+
+   2S/3S balance charger              1            499            499              Shared charger
+
+   LiPo-safe bag                      1            350            350              Battery storage
+
+   LM2596 regulator                   2            99             198              Logic power
+
+   XL4015 5 A regulator               4            249            996              Motor and servo power
+
+   Fuses and holders                  2 sets       75             150              One set per robot
+
+
+
+
+CareBot / SealBot | Complete architecture and purchasing plan | 6 September 2026                                             5
+   Part                              Quantity         Unit Rs     Subtotal Rs      Use
+
+   Capacitors and motor-noise        1 lot            250         250              Both robots
+   parts
+
+   Wire, connectors, perfboard,      1 lot            900         900              Both robots
+   and standoffs
+
+   Power and wiring subtotal                                      6,141
+
+
+
+
+ Body and mechanisms
+
+   Material                       Allowance Rs                                           Use
+
+   Plywood, acrylic, and PET      900                                                    Boxes, trays, flaps, decks, and covers
+   sheet
+
+   Screws, nuts, washers, and     600                                                    Structure
+   spacers
+
+   Rods, hinges, springs, and     450                                                    Flap and grippers
+   linkage wire
+
+   Rubber belts, pulley           500                                                    CareBot lift and SealBot conveyor
+   material, foam, and rubber
+   strips
+
+   Chute liners and flexible      250                                                    Tilted boxes and rear output
+   outlet pieces
+
+   Cutting, drilling, or small    700                                                    Brackets and pulleys
+   3D-printed parts
+
+   Practice pieces and field      600                                                    Testing
+   mock-up
+
+   Labels and decoration          250                                                    Final presentation
+
+   Body and mechanism             4,250
+   subtotal
+
+
+
+
+ Total
+
+   Group                                        Rs
+
+   Electronics and motion                       6,813
+
+   Sensors and controls                         1,779
+
+   Power and wiring                             6,141
+
+   Body and mechanisms                          4,250
+
+   Shipping allowance                           900
+
+   Repair reserve                               800
+
+   Complete planning total                      20,683
+
+
+
+
+CareBot / SealBot | Complete architecture and purchasing plan | 6 September 2026                                                  6
+ Plan on Rs 20,700 if everything is bought new. If the school already has sheet material, wire, fasteners, and workshop
+ access, expect about Rs 16,700 to Rs 17,200.
+
+
+ 8. What to build next
+  1. Build one CareBot pickup using four pulleys, two rubber loops, and one N20 motor. Test it with the real kit and
+     coloured piece.
+
+  2. Build one SealBot conveyor using two belt loops, two shafts, and three trays. Make it move exactly one tray per
+     command.
+
+  3. Make the SealBot front from cardboard. Put the two grippers at the bottom and the raised input flap directly above
+     them.
+
+  4. Buy the full set only after these two simple mechanisms work. A small proof set costs about Rs 3,200 to Rs 3,600.
+
+
+ 9. Sources
+  - Espressif ESP32-CAM camera pin map
+
+  - NXP PCA9685 datasheet
+
+  - Texas Instruments DRV8833 product page
+
+  - Directronics ESP32-CAM listing
+
+  - Probots PCA9685 board
+
+  - Probots PCF8575 board
+
+  - SunRobotics DRV8833 board
+
+  - Probots SG90 servo
+
+  - Probots MG90S servo
+
+  - Robu TCS34725 listing
+
+  - Stemvolt five-channel line sensor
+
+  - Probots power regulators and charger
+
+
+
+
+CareBot / SealBot | Complete architecture and purchasing plan | 6 September 2026                                          7
+

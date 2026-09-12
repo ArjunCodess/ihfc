@@ -1,0 +1,22 @@
+\contentsline {section}{\numberline {1}The decision}{2}{section.1}%
+\contentsline {section}{\numberline {2}What we keep and what we remove}{2}{section.2}%
+\contentsline {section}{\numberline {3}Budget for both robots}{3}{section.3}%
+\contentsline {section}{\numberline {4}CareBot: kit delivery and one patient at a time}{4}{section.4}%
+\contentsline {subsection}{\numberline {4.1}Three kit chutes}{4}{subsection.4.1}%
+\contentsline {subsection}{\numberline {4.2}A small scoop with positive release}{4}{subsection.4.2}%
+\contentsline {subsection}{\numberline {4.3}Delivery strategy}{4}{subsection.4.3}%
+\contentsline {section}{\numberline {5}ESP32-CAM implementation}{5}{section.5}%
+\contentsline {subsection}{\numberline {5.1}Keep the camera job small}{5}{subsection.5.1}%
+\contentsline {subsection}{\numberline {5.2}Classification that students can debug}{5}{subsection.5.2}%
+\contentsline {subsection}{\numberline {5.3}Camera-to-Nano connection}{5}{subsection.5.3}%
+\contentsline {subsection}{\numberline {5.4}Finding a patient is a separate problem}{6}{subsection.5.4}%
+\contentsline {section}{\numberline {6}SealBot: collect floor-staged beams one at a time}{6}{section.6}%
+\contentsline {subsection}{\numberline {6.1}Starting arrangement}{6}{subsection.6.1}%
+\contentsline {section}{\numberline {7}Electrical and navigation details that prevent avoidable failures}{7}{section.7}%
+\contentsline {subsection}{\numberline {7.1}Two power branches per robot}{7}{subsection.7.1}%
+\contentsline {subsection}{\numberline {7.2}Drive and sensing}{7}{subsection.7.2}%
+\contentsline {subsection}{\numberline {7.3}Pin allocation for CareBot's classic Nano}{8}{subsection.7.3}%
+\contentsline {section}{\numberline {8}Mission control and collision handling}{8}{section.8}%
+\contentsline {section}{\numberline {9}Nine-day schedule}{9}{section.9}%
+\contentsline {section}{\numberline {10}Scoring tradeoffs and remaining risks}{9}{section.10}%
+\contentsline {section}{\numberline {11}Price references and technical sources}{10}{section.11}%

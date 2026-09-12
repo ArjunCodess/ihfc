@@ -1,0 +1,25 @@
+\contentsline {section}{\numberline {1}The design decision}{1}{section.1}%
+\contentsline {section}{\numberline {2}What the rulebook actually requires}{1}{section.2}%
+\contentsline {subsection}{\numberline {2.1}Decisions made from the rulebook}{2}{subsection.2.1}%
+\contentsline {section}{\numberline {3}Robot layout and legal starting arrangement}{3}{section.3}%
+\contentsline {section}{\numberline {4}SealBot: samples before closure}{3}{section.4}%
+\contentsline {subsection}{\numberline {4.1}Collect one sample deliberately}{4}{subsection.4.1}%
+\contentsline {subsection}{\numberline {4.2}Place the samples into three distinct slots}{4}{subsection.4.2}%
+\contentsline {subsection}{\numberline {4.3}Place the beams without lifting them}{4}{subsection.4.3}%
+\contentsline {section}{\numberline {5}CareBot: collect once, deliver by destination}{5}{section.5}%
+\contentsline {subsection}{\numberline {5.1}A magazine students can make}{5}{subsection.5.1}%
+\contentsline {subsection}{\numberline {5.2}Lift and inspect each patient}{6}{subsection.5.2}%
+\contentsline {subsection}{\numberline {5.3}Deliver all kits with three gates}{6}{subsection.5.3}%
+\contentsline {subsection}{\numberline {5.4}Deliver patients without losing the yellow split}{7}{subsection.5.4}%
+\contentsline {section}{\numberline {6}ESP32-CAM perception that fits the hardware}{7}{section.6}%
+\contentsline {section}{\numberline {7}Routes, field coverage and the two-minute limit}{7}{section.7}%
+\contentsline {subsection}{\numberline {7.1}Timing model, not a measured run}{8}{subsection.7.1}%
+\contentsline {section}{\numberline {8}Electronics, power and pin allocation}{9}{section.8}%
+\contentsline {subsection}{\numberline {8.1}Pin allocation: shared Nano connections}{9}{subsection.8.1}%
+\contentsline {subsection}{\numberline {8.2}Pin allocation: CareBot additions}{10}{subsection.8.2}%
+\contentsline {subsection}{\numberline {8.3}Pin allocation: SealBot additions}{10}{subsection.8.3}%
+\contentsline {section}{\numberline {9}Control logic and failure recovery}{11}{section.9}%
+\contentsline {section}{\numberline {10}Budget: Rs 9,910 for both robots}{12}{section.10}%
+\contentsline {subsection}{\numberline {10.1}Price evidence and substitutions}{13}{subsection.10.1}%
+\contentsline {section}{\numberline {11}Nine-day build sequence}{14}{section.11}%
+\contentsline {section}{\numberline {12}Failure audit and acceptance tests}{15}{section.12}%

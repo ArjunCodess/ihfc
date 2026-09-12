@@ -1,0 +1,14 @@
+\contentsline {section}{\numberline {1}Build the simpler version}{1}{section.1}%
+\contentsline {section}{\numberline {2}The whole job, divided between two robots}{1}{section.2}%
+\contentsline {section}{\numberline {3}CareBot stays almost unchanged}{1}{section.3}%
+\contentsline {subsection}{\numberline {3.1}Deliver the kits in three batches}{1}{subsection.3.1}%
+\contentsline {subsection}{\numberline {3.2}Keep one patient in one pocket}{2}{subsection.3.2}%
+\contentsline {subsection}{\numberline {3.3}Add the missing full patient sequence in software}{2}{subsection.3.3}%
+\contentsline {section}{\numberline {4}SealBot gains one sample tray}{2}{section.4}%
+\contentsline {subsection}{\numberline {4.1}Pick up one disc at a time}{2}{subsection.4.1}%
+\contentsline {subsection}{\numberline {4.2}Drop it into an empty laboratory slot}{3}{subsection.4.2}%
+\contentsline {subsection}{\numberline {4.3}Then use the previous beam clamp}{3}{subsection.4.3}%
+\contentsline {section}{\numberline {5}Fit, routes and the two-minute limit}{3}{section.5}%
+\contentsline {section}{\numberline {6}Keep the electronics familiar}{4}{section.6}%
+\contentsline {section}{\numberline {7}Budget for both robots}{5}{section.7}%
+\contentsline {section}{\numberline {8}Nine days, with the difficult part first}{6}{section.8}%

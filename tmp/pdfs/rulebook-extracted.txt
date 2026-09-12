@@ -1,0 +1,906 @@
+RULEBOOK
+2026-2027
+                                                                 Rulebook 2026-2027
+
+
+
+a. Challenge theme
+
+As the world faces increasingly complex health crises, from humanitarian
+emergencies to epidemic outbreaks, health systems must be able to act
+quickly to ensure timely and appropriate care while maintaining essential
+services for all.
+This challenge focuses on how communities and health services can
+better prepare to respond to a public health emergency. In these
+situations, any imbalance in the organisation, logistics or coordination
+of healthcare processes can increase risk of adverse outcomes, put
+pressure on the system and make it more difficult for people to receive
+the care they need.
+In this scenario, primary care and community health are key
+components. An effective health system response requires coordinating
+resources between hospitals, primary care centres and other support
+spaces to avoid overcrowding and ensure that each case receives the
+appropriate care.
+In this context, technology can help increase response capacity when
+time and resources are limited. Robotics and artificial intelligence can be
+applied to automate repetitive or tasks with high risk of communicable
+disease infection, improve supply logistics and support complex
+operational processes in fast-changing environments. For example, in
+an infectious disease health emergency, mobile robots can transport
+critical materials, carry out tasks in delimited areas, reduce avoidable
+contact times and support triage workflows. These types of solutions do
+not replace health teams, but rather provide vital support to them when
+reliability, speed and safety are essential.
+Within this framework, the Robotics for Good Youth Challenge 2026-2027,
+promoted by the International Telecommunication Union in partnership
+with make+learn, focuses on addressing these critical issues through
+robotics applied to a public health emergency.
+The competition challenges participating teams to design, build and
+program autonomous robots to simulate real response operations.
+Teams, made up of a maximum of eight members, will work on a game
+field that represents key processes in a health emergency situation.
+The challenge includes several missions: delimiting a quarantine zone to
+contain risk and operate with precision; helping with clinical diagnosis by
+
+                                                                                             2
+
+
+
+   International Telecommunication Union · Place des Nations · CH-1211 Geneva 20 · Switzerland
+                            Tel: +41 22730 5111 · Fax +41 22733 7256
+                                                                 Rulebook 2026-2027
+
+
+
+extracting and delivering samples to a laboratory; distributing medical
+kits to support the care network between a hospital, primary care centres
+and a recovery zone; and carrying out medical triage that further
+involves decisions to be made on the operational level.
+Through this scenario, students work on situations related to health
+emergency response, such as organising safe spaces, managing
+diagnostic information, distributing resources and prioritising cases
+according to urgency level. The simulation helps them understand
+that, in an emergency, every technical decision must contribute to a
+coordinated, safe response focused on the people’s health.
+Through simulation in a competitive environment, students will be able
+to explore how robotics can help strengthen more resilient, efficient and
+accessible health systems. At the same time, they will put into practice
+key skills such as planning, collaboration, creativity, reliability and safety,
+which are necessary to respond to complex situations in healthcare and
+beyond.
+Participation in the challenge provides direct experience in engineering
+and programming, and helps students understand how technology can
+be designed and applied using ethical, social and technical criteria to
+generate a positive impact on the health and well-being of communities.
+
+
+b. Mission for teams
+In this year’s challenge, the mission is divided into two main lines of
+action inspired by realistic response processes during a public health
+emergency: containment and sample management, and logistic and
+healthcare management. The game field simulates the deployment of a
+quarantine zone, the collection and delivery of samples to a laboratory,
+the distribution of medical kits, and the triage of cases according
+to urgency level. All these actions test the robots’ ability to operate
+autonomously, accurately and in a coordinated way.
+The competition is divided into two categories, Junior and Senior, with
+a common mission structure but with some differences in difficulty,
+validation and scoring criteria. These differences make it possible to
+adapt the challenge to the age and experience of the participating
+teams, while maintaining the same thematic and technical framework.
+Each match lasts 2 minutes, during which the robots must work fully
+autonomously, with no human intervention once the round has started.
+                                                                                             3
+
+
+
+   International Telecommunication Union · Place des Nations · CH-1211 Geneva 20 · Switzerland
+                            Tel: +41 22730 5111 · Fax +41 22733 7256
+                                                                 Rulebook 2026-2027
+
+
+
+Starting zone
+Each robot, or set of robots, must start completely within the starting
+zone. This zone measures 480 × 280 mm, is located at the bottom of the
+board, and is marked out with black adhesive tape. Initially, the robots
+and game elements may touch the black adhesive tape, but they must
+never extend beyond the boundaries of the starting zone.
+This same type of adhesive tape may be used in other areas of the field
+to mark specific zones or reference points.
+Each team may use one or more robots, provided that all of them fit
+entirely within this area. The use of multiple robots is optional. If more
+than one robot is used, all robots may begin operating simultaneously
+from the start of the match.
+The medical kits and quarantine bars must also start within the starting
+area. Before the match begins, these elements may be placed on the
+board, on the robot, or incorporated into its mechanism, as long as the
+entire setup remains completely within the boundaries of the starting
+area. No element may extend beyond the marked area, cross the black
+tape, or touch any external element of the field.
+Once the referee has validated the starting position, the team may
+manually remove from the starting area any game elements they decide
+not to use during the match. They may also manually handle elements
+that will later be delivered to the robots, provided that this action is
+carried out with the robot completely within the starting area.
+Mission 1. Containment and sample management
+This mission simulates the containment of a public health emergency
+through two main actions: removing samples from a risk zone and
+completing the closure of a quarantine area.
+In the lower-left part of the field, there is the quarantine zone, which uses
+two walls of the board as part of its perimeter. At the start of each match,
+this zone contains three samples. In the Junior category, the samples
+are always placed in fixed positions. In the Senior category, however, the
+samples are placed randomly inside the quarantine zone.
+Near this area, there is the laboratory, a structure with three slots, one for
+each sample. These slots simulate laboratory analysis points where the
+samples are registered for processing.
+
+                                                                                             4
+
+
+
+   International Telecommunication Union · Place des Nations · CH-1211 Geneva 20 · Switzerland
+                            Tel: +41 22730 5111 · Fax +41 22733 7256
+                                                                 Rulebook 2026-2027
+
+
+
+The starting zone also contains two wooden beams that allow teams to
+complete the closure of the quarantine zone.
+  • Step 1. Sample extraction and delivery to the laboratory: the robot
+    must collect the three samples located inside the quarantine area
+    and transport them to the laboratory. For the task to be valid, the
+    samples must be placed completely inside the laboratory slots,
+    which simulate analysis points where the samples are registered for
+    processing. This action represents common control, isolation and
+    sample management interventions in health emergency situations.
+   The samples are flat circular discs. Once the match has started, the
+   team cannot reposition them or modify their position.
+   Robots may move through the quarantine zone if they need to collect
+   the samples or carry out the mission strategy, as long as they do not
+   damage any element of the game field.
+
+
+  • Step 2. Construction of the quarantine zone: for the task to be valid,
+    the beams must be placed so that, together with the two fixed walls
+    of the field, they complete the perimeter of the quarantine zone and
+    close it completely.
+
+   The closure is considered complete when each beam touches one
+   of the fixed walls of the field and, at the same time, the two beams
+   touch each other at one end. In this way, the four sides of the zone
+   are delimited and form an approximately square closed perimeter,
+   with right angles between the sides. The beams must also be placed
+   so that they touch or partially cover the black line marked on the
+   floor.
+
+   A beam is considered correctly placed when it is standing upright
+   on its long side, stable by itself and fully released by the robot. It
+   must not be held, supported or touched by any robot, mechanism,
+   accessory or team component at the end of the match.
+
+   The beams are rectangular wooden pieces. Before the match starts,
+   the two containment beams must be inside the starting zone. The
+   team may place them freely on the robot or incorporate them into
+   its mechanism before the round begins, as long as the robot and all
+   beams remain completely within the limits of the starting zone.
+
+                                                                                             5
+
+
+
+   International Telecommunication Union · Place des Nations · CH-1211 Geneva 20 · Switzerland
+                            Tel: +41 22730 5111 · Fax +41 22733 7256
+                                                                 Rulebook 2026-2027
+
+
+
+    Once the match has started, the team cannot reposition the beams
+    or intervene in their position. From that moment on, only the robot
+    may transport them and place them in the quarantine zone.
+Mission 2. Healthcare management
+This mission is related to healthcare management during a public
+health emergency. Teams must distribute medical supplies and
+classify different cases according to urgency level, simulating common
+healthcare coordination interventions in crisis situations.
+At the top of the field are the main healthcare destination zones:
+the hospital (H), located in the centre, and two primary care centres
+(PCC), located in each corner. These zones are used for the distribution
+of medical kits and for transporting triaged patients who require
+hospitalisation. The recovery zone (RZ) is located inside the starting zone
+and represents the area for low-urgency or recovery cases.
+The ten medical kits are located in the starting zone. The kits are wooden
+cube-shaped pieces that represent medical supplies. Before the match
+starts, all kits must be inside the starting zone. The team may place them
+freely on the robot or incorporate them into its mechanism before the
+round begins, as long as the robot and all kits remain completely within
+the limits of the starting zone. Once the match has started, the team
+cannot reposition the kits or intervene in their position.
+In two side areas of the field, there are twelve wooden cylinders placed
+on circular floor stickers: six cylinders on each side. There are four red
+cylinders, four yellow cylinders and four green cylinders. At the start of
+each match, each cylinder is placed on a circular sticker on the floor
+of the field. These cylinders represent people affected by the health
+emergency who have been assigned an urgency level.
+  • Step 1. Medical kit distribution: the robot must transport the medical
+    kits from the starting zone to the healthcare destination zones. Each
+    kit placed inside the hospital or inside a primary care centre can
+    score points for the team.
+
+    In this challenge, six kits have to be placed inside the hospital (H),
+    two kits inside one primary care centre (PCC), and two kits inside the
+    other primary care centre (PCC).
+  • Step 2. Medical triage: the robot must classify the twelve
+    triaged patients according to colour and transport them to the
+    corresponding destination zone. Each cylinder, located in ground                         6
+
+
+
+   International Telecommunication Union · Place des Nations · CH-1211 Geneva 20 · Switzerland
+                            Tel: +41 22730 5111 · Fax +41 22733 7256
+                                                                 Rulebook 2026-2027
+
+
+
+    zone, represents a person affected by the health emergency who has
+    been assigned an urgency level:
+     • Red: critical case. It must be transported to the hospital (H).
+     • Yellow: observation case. It must be transported to one of the
+       primary care centres (PCC).
+     • Green: recovery case. It must be transported to the recovery
+       zone (RZ).
+    In the Junior category, the position and distribution of the triaged
+    patients are fixed and remain the same in every match. In the Senior
+    category, however, the position of the triaged patients is randomised
+    in each match, but the configuration must be the same on both fields
+    competing simultaneously, to ensure equal conditions.
+    Robots may classify the cases in a single sequence or combine this
+    task with other actions in the challenge, depending on the team’s
+    strategy. It should be noted that any triaged patient placed in an
+    incorrect destination zone may affect the final score. In regard to
+    the patients represented by yellow cylinders, an even distribution
+    between the two primary care centres may provide additional points,
+    but it is not considered an error if all yellow cylinders end up inside a
+    single primary care centre.
+The two missions may be carried out in any order decided by the team.
+They may also be performed in parallel if the team uses more than one
+robot, as long as all robots comply with the initial conditions established
+in the rulebook. It is not mandatory to complete all the proposed actions.
+Actions that are not completed simply do not score and do not result in a
+penalty.
+
+
+c. Game materials
+ 1. Game board. The game board is where the robot game takes place
+    and is divided into two competition fields.
+    1.1. Elements
+         • Game board surface: 2,362 ± 5 × 1,143 ± 5 mm
+         • Competition field surface: 1,181 ± 6 × 1,143 ± 5 mm
+         • Long side walls: 2,402 ± 5 × 20 ± 1 × 65 ± 2 mm
+                                                                                             7
+
+
+
+   International Telecommunication Union · Place des Nations · CH-1211 Geneva 20 · Switzerland
+                            Tel: +41 22730 5111 · Fax +41 22733 7256
+                                                               Rulebook 2026-2027
+
+
+
+       • Central wall: 1,143 ± 3 × 19 ± 1 × 70 ± 3 mm
+  1.2. Game surface finish
+       At the international final, the game board surface will be white,
+       smooth and glossy, with a finish similar to that of a whiteboard.
+       In regional or national stages, the local organiser may use other
+       materials to build the game field and its elements. For example,
+       MDF surfaces, white boards, printed white tarpaulins or other flat,
+       stable materials suitable for robot operation may be used.
+       Despite these possible variations, the field must maintain the
+       dimensions, zone layout and general conditions of the challenge
+       to ensure equal conditions between teams within the same
+       stage.
+       Teams will have adaptation time before the competition scoring
+       matches begin in order to adjust the behaviour of their robots to
+       the official surface.
+2. The game uses a combination of specific physical materials to
+   recreate a public health emergency scenario in an interactive way.
+3. The main game elements include samples, which represent material
+   collected in a risk zone to be analysed; the laboratory, which
+   simulates the space for validating and processing the samples;
+   the containment beams, which represent physical barriers used
+   to complete a quarantine zone; the medical kits, which symbolise
+   medical supplies needed to reinforce the health response; and the
+   triaged patients, which represent people affected by the emergency
+   who have been assigned an urgency level.
+  Note: the visual representations of the elements are schematic and
+  may not reflect the exact scale. The technical dimensions indicated
+  are the valid ones.
+  3.1. Samples: pieces that represent samples collected in a risk zone.
+               ◦ Number: 3
+               ◦ Material: wood
+               ◦ Dimensions: flat circular discs, 56 mm in diameter
+
+
+
+                                                                                           8
+
+
+
+ International Telecommunication Union · Place des Nations · CH-1211 Geneva 20 · Switzerland
+                          Tel: +41 22730 5111 · Fax +41 22733 7256
+                                                              Rulebook 2026-2027
+
+
+
+
+ 3.2. Laboratory: structure used to validate the delivery of the
+      samples.
+              ◦ Number: 1
+              ◦ Material: wood
+              ◦ Dimensions: laboratory structure with 3 marked slots of
+              60 mm
+
+
+
+
+ 3.3. Containment beams: pieces used to complete the closure of the
+      quarantine zone.
+              ◦ Number: 2
+              ◦ Material: wood
+              ◦ Dimensions: 60 × 20 mm section
+
+
+                                                                                          9
+
+
+
+International Telecommunication Union · Place des Nations · CH-1211 Geneva 20 · Switzerland
+                         Tel: +41 22730 5111 · Fax +41 22733 7256
+                                                              Rulebook 2026-2027
+
+
+
+
+ 3.4. Medical kits: pieces that represent medical supplies intended
+      for the healthcare zones of the field.
+              ◦ Number: 10
+              ◦ Material: wood
+              ◦ Dimensions: cubes, 25 × 25 × 20 mm
+
+
+
+
+                                                                                          10
+
+
+
+International Telecommunication Union · Place des Nations · CH-1211 Geneva 20 · Switzerland
+                         Tel: +41 22730 5111 · Fax +41 22733 7256
+                                                              Rulebook 2026-2027
+
+
+
+ 3.5. Triaged patients: cylinders in three colours that represent
+      patients with different urgency levels.
+      • Critical case:
+              ◦ Number: 4
+              ◦ Material: wood
+              ◦ Dimensions: 20 × 20 mm
+              ◦ Finish: red acrylic paint
+
+
+
+
+      • Observation case:
+              ◦ Number: 4
+              ◦ Material: wood
+              ◦ Dimensions: 20 × 20 mm
+              ◦ Finish: yellow acrylic paint
+
+
+
+
+                                                                                          11
+
+
+
+International Telecommunication Union · Place des Nations · CH-1211 Geneva 20 · Switzerland
+                         Tel: +41 22730 5111 · Fax +41 22733 7256
+                                                               Rulebook 2026-2027
+
+
+
+       • Low-risk case:
+               ◦ Number: 4
+               ◦ Material: wood
+               ◦ Dimensions: 20 × 20 mm
+               ◦ Finish: green acrylic paint
+
+
+
+
+  3.6. Circular starting-position stickers: circular marks that indicate
+       the starting position of the triaged patients at the beginning of
+       each match.
+               ◦ Number: 12
+               ◦ Dimensions: 20 mm
+
+
+
+
+4. All materials must be placed according to the assembly instructions
+   provided by the organisation.
+5. The organisation reserves the right to introduce minor variations
+   in the design of the materials, provided that they do not alter the
+   balance of the challenge.
+
+
+
+
+                                                                                           12
+
+
+
+ International Telecommunication Union · Place des Nations · CH-1211 Geneva 20 · Switzerland
+                          Tel: +41 22730 5111 · Fax +41 22733 7256
+                                                                Rulebook 2026-2027
+
+
+
+
+Game rules
+d. Game field
+ 1. The game field simulates a response to a public health emergency,
+    divided into different work areas.
+ 2. General characteristics:
+   2.1. Total dimensions of the game board: 2,362 ± 5 mm x 1,143 ± 5 mm
+   2.2. Division into two equal halves for the simultaneous competition
+        of two teams.
+
+
+
+
+   2.3. Robot starting zone, measuring 480 × 280 mm and marked out
+        with 20 mm-wide black adhesive tape. This same type of tape
+        may be used at other points on the playing field as a visual
+        reference or to mark out other game areas.
+
+
+                                                                                            13
+
+
+
+  International Telecommunication Union · Place des Nations · CH-1211 Geneva 20 · Switzerland
+                           Tel: +41 22730 5111 · Fax +41 22733 7256
+                                                              Rulebook 2026-2027
+
+
+
+
+ 2.4. Healthcare zone, located at the top of the field. This zone brings
+      together the main destination areas related to healthcare: the
+      hospital (H), located in the centre, and the two primary care
+      centres (PCC), located in each upper corner. These areas
+      receive medical kits and medical cases according to the mission
+      conditions.
+
+
+
+
+ 2.5. Recovery zone (RZ), located inside the starting zone. This zone
+      represents the area intended for low-urgency cases or cases in
+      recovery.
+
+
+
+
+                                                                                          14
+
+
+
+International Telecommunication Union · Place des Nations · CH-1211 Geneva 20 · Switzerland
+                         Tel: +41 22730 5111 · Fax +41 22733 7256
+                                                              Rulebook 2026-2027
+
+
+
+
+ 2.6. Quarantine zone, located in one corner of the field. This zone
+      uses two walls of the board as part of its perimeter and is used to
+      simulate the isolation of a risk area.
+
+
+
+
+ 2.7. Laboratory zone, located near the quarantine zone. It contains
+      a structure with three marked slots, one for each sample, which
+      simulate laboratory analysis points.
+
+
+
+
+                                                                                          15
+
+
+
+International Telecommunication Union · Place des Nations · CH-1211 Geneva 20 · Switzerland
+                         Tel: +41 22730 5111 · Fax +41 22733 7256
+                                                               Rulebook 2026-2027
+
+
+
+  2.8. Ground zone, located on the sides of the field. This zone
+       contains twelve circular stickers, six on each side, which indicate
+       the starting position of the triaged patients. In the Junior
+       category, this arrangement is fixed. In the Senior category, the
+       arrangement may vary in each match, but it must be mirrored
+       on both fields, so that both teams compete with the same initial
+       configuration.
+
+
+
+
+3. The field must be perfectly aligned and assembled to ensure equal
+   conditions.
+4. Teams may request a brief visual inspection before each match to
+   detect possible irregularities.
+                                                                                           16
+
+
+
+ International Telecommunication Union · Place des Nations · CH-1211 Geneva 20 · Switzerland
+                          Tel: +41 22730 5111 · Fax +41 22733 7256
+                                                                Rulebook 2026-2027
+
+
+
+
+e. Robots
+ 1. Each team must present at least one robot. There is no maximum
+    limit on the number of robots, as long as all of them start completely
+    inside the starting zone.
+ 2. The robots must operate completely autonomously. They must be
+    activated simultaneously at the start of the match and may only be
+    stopped when the match ends or when instructed by the referee.
+ 3. Each robot must have an easily accessible and clearly identifiable
+    emergency stop mechanism, allowing it to be switched off quickly in
+    the event of a safety risk or behaviour that breaches the rules.
+ 4. Any type of materials and programming platforms may be used.
+ 5. All robots must be decorated in relation to the theme of public health
+    and well-being (SDG 3), within the health emergency scenario. This
+    decoration will be checked through a prior visual inspection.
+   5.1. If a robot does not pass the visual inspection, or if it represents a
+        risk to the field or to people, it will not be allowed to participate.
+   5.2. If several robots are presented, all of them must comply with the
+        decoration requirement and pass the inspection.
+ 6. A robot is considered active when it starts executing instructions
+    without human intervention. It does not need to move immediately.
+ 7. Each robot must have an easily accessible and clearly identifiable
+    stop system that allows it to be switched off quickly in the event of a
+    risk or a breach of the rules.
+ 8. All robots must meet minimum safety and integrity requirements.
+    They must not have cutting or sharp elements, edges, loose parts,
+    poorly secured cables or batteries that are not properly fixed. They
+    must also not include any element that could damage the field, the
+    game pieces, other robots or the participating people.
+
+
+
+f. Team members
+ 1. A maximum of three team members may enter the competition area.
+    These individuals are responsible for positioning the robots, carrying
+    out the necessary actions, and informing the referees.
+                                                                                            17
+
+
+
+  International Telecommunication Union · Place des Nations · CH-1211 Geneva 20 · Switzerland
+                           Tel: +41 22730 5111 · Fax +41 22733 7256
+                                                                Rulebook 2026-2027
+
+
+
+ 2. The remaining team members and mentors must remain outside the
+    competition area.
+ 3. Mentors and team members located outside the competition area
+    may not communicate with the members inside or with the referees.
+    Any questions or incidents must be reported to the designated
+    volunteer staff outside the competition area, so as not to interfere
+    with the scheduling and running of the rounds.
+
+
+
+g. Round procedure
+ 1. Each game round will have a maximum duration of 2 minutes.
+ 2. Preparation before the round:
+   2.1. Place the switched-off robots inside the starting zone, marked
+        with black tape.
+   2.2. Check the field and report any issue to the referee before the
+        round starts.
+ 3. Start of the round:
+   3.1. The game starts when teams activate their robots after the timer
+        begins.
+   3.2. Once the robots are running, teams may not intervene in their
+        operation.
+ 4. Human interaction:
+   4.1. The only permitted action is to hand the robot the initial base
+        elements while it is completely inside the starting area.
+   4.2. Team members may pick up these elements and place them
+        into the robot’s receiving mechanism. However, they may not
+        move, turn, reposition, push, or activate the robot during the
+        handover.
+   4.3. Elements that have moved fully or partially outside the starting
+        area may not be retrieved or handled.
+   4.4. No interaction with the robots is permitted.
+   4.5. Any unauthorised interaction with the robot, the game
+        elements, or the field during the round will be penalised in
+        accordance with the penalties section.                                              18
+
+
+
+  International Telecommunication Union · Place des Nations · CH-1211 Geneva 20 · Switzerland
+                           Tel: +41 22730 5111 · Fax +41 22733 7256
+                                                                Rulebook 2026-2027
+
+
+
+   4.6. During the round, the team may request a reset from the
+        referees. The countdown will not restart, and any accumulated
+        penalties will remain in place. The referees will reset the field to
+        its initial configuration so that participants can reactivate all
+        robots from the starting area.
+ 5. End of the round:
+   5.1. The game ends when the 2 minutes run out or when the team
+        decides to stop it earlier.
+   5.2. At the end of the round, the robots must remain stopped in their
+        final position for the referee’s assessment.
+ 6. General conditions during the round:
+   6.1. All robots must remain within the limits of the field at all times.
+   6.2. If a robot leaves the field completely, it must be stopped
+        immediately.
+   6.3. The field must be left ready for the next round. The team is
+        responsible for removing its robots when instructed to do so.
+
+
+h. Game procedure
+ 1. The scoring system will be calculated differently for each category,
+    adapting the missions to the corresponding age group.
+ 2. Junior category (born between 2017 and 2013)
+   2.1. Mission 1. Containment and sample management
+        Before each match, the three samples are placed inside the
+        quarantine area, located in the lower-left part of the field, in fixed
+        positions. The two containment beams are placed inside the
+        starting zone.
+
+
+
+
+                                                                                            19
+
+
+
+  International Telecommunication Union · Place des Nations · CH-1211 Geneva 20 · Switzerland
+                           Tel: +41 22730 5111 · Fax +41 22733 7256
+                                                                     Rulebook 2026-2027
+
+
+
+
+   Action                                                                           Points
+   Correctly placing one sample inside a laboratory slot                             +15
+   Correctly placing all three samples inside the laboratory slots                   +5
+   Each sample located outside the quarantine area and outside the                    0
+   laboratory zone at the end of the match
+   Correctly placing one containment beam in the indicated position,                 +25
+   upright and stable by itself
+   Completing the perimeter of the quarantine zone with the two                      +20
+   beams and the two fixed walls of the field
+
+
+
+  2.2. Mission 2. Healthcare management
+       Before each match, the ten medical kits are placed inside the
+       starting zone. The twelve triaged patients are placed on circular
+       stickers located in the side areas of the field, with six cylinders
+       on each side. In the Junior category, the arrangement of the
+       cylinders is fixed and remains the same in every match.
+
+   Action                                                                           Points
+   Correctly placing one medical kit inside a valid marked area                       +3
+   Achieving the correct full distribution: six kits in the hospital, two kits in     +20
+   one primary care centre (PCC), and two kits in the other PCC
+   Each destination zone left with no kits at the end of the match                     0
+   Placing one triaged patient inside the correct destination zone                    +5
+   Placing all red cylinders inside the hospital (H)                                  +6
+   Correctly distributing the yellow cylinders between the two primary care           +8
+   centres (PCC)
+   Placing all green cylinders inside the recovery zone (RZ)                          +6
+   Triaged patient outside their correct destination zone                              0
+
+
+3. Senior category (born between 2012 and 2009)
+  3.1. Mission 1. Containment and sample management
+       Before each match, the three samples are placed inside the
+       quarantine area, located in the lower-left part of the field, in
+       random positions that differ in each match. The two containment
+       beams are placed inside the starting zone.
+                                                                                             20
+
+
+
+ International Telecommunication Union · Place des Nations · CH-1211 Geneva 20 · Switzerland
+                          Tel: +41 22730 5111 · Fax +41 22733 7256
+                                                                  Rulebook 2026-2027
+
+
+
+
+    Action                                                                   Points
+    Correctly placing one sample inside a laboratory slot                      +15
+    Correctly placing all three samples inside the laboratory slots            +5
+    Each sample located outside both the quarantine area and the                -3
+    laboratory zone at the end of the match
+    Correctly placing one containment beam in the indicated                    +25
+    position, upright and stable by itself
+    Completing the perimeter of the quarantine zone with the two               +20
+    beams and the two fixed walls of the field
+
+
+   3.2. Mission 2. Healthcare management
+        Before each match, the ten medical kits are placed inside the
+        starting zone. The twelve triaged patients are placed on circular
+        stickers located in the side areas of the field, with six cylinders
+        on each side. In the Senior category, the arrangement of the
+        cylinders is randomised in each match, but it must be mirrored
+        on both fields competing simultaneously.
+
+    Action                                                                   Points
+    Correctly placing one medical kit inside a valid marked area                +3
+    Achieving the correct full distribution: six kits in the hospital, two     +20
+    kits in one primary care centre (PCC), and two kits in the other
+    primary care centre (PCC)
+    Each destination zone left with no kits at the end of the match            -10
+    Placing one triaged patient inside the correct destination zone             +5
+    Placing all red cylinders inside the hospital (H)                           +6
+    Correctly distributing the yellow cylinders between the two                 +8
+    primary care centres (PCC)
+    Placing all green cylinders inside the recovery zone (RZ)                   +6
+    Triaged patient outside their correct destination zone                      -3
+
+
+
+
+i. Competition structure
+ 1. The competition is divided into two phases: a qualifying phase and a
+    knockout phase.
+
+                                                                                            21
+
+
+
+  International Telecommunication Union · Place des Nations · CH-1211 Geneva 20 · Switzerland
+                           Tel: +41 22730 5111 · Fax +41 22733 7256
+                                                               Rulebook 2026-2027
+
+
+
+2. Organisation of the rounds:
+  2.1. Each team will play a minimum of two rounds in the qualifying
+       phase.
+  2.2. Matches will be held between pairs of teams, competing
+       simultaneously on the two halves of the same table. Each game
+       field occupies half of the table.
+  2.3. The order of participation will be distributed in a balanced way to
+       ensure the same opportunities for all teams.
+3. Ranking:
+  3.1. Teams will be ranked according to their best score obtained in
+       one of the rounds.
+  3.2. In the event of a tie, the following criteria will be applied, in order:
+       • First, teams will be ranked according to the highest score
+         achieved in any of the qualifying rounds, from highest to
+         lowest.
+       • In the event of a tie, the total number of points obtained across
+         all qualifying rounds will be taken into account, from highest to
+         lowest.
+       • If the tie persists, the number of absences will be considered,
+         from lowest to highest.
+       • Next, priority will be given to the team that has received the
+         fewest penalties.
+       • Finally, if the tie remains, the ranking will be decided by a draw
+         among the tied teams.
+4. Knockout phase:
+  4.1. The highest-ranked teams will advance to a knockout duel
+       phase.
+  4.2. The pairing will follow a crossed model: 1st vs last, 2nd vs second-
+       to-last, and so on.
+  4.3. The winners will advance until the final.
+  4.4. A consolation final will be held to decide third place.
+
+                                                                                           22
+
+
+
+ International Telecommunication Union · Place des Nations · CH-1211 Geneva 20 · Switzerland
+                          Tel: +41 22730 5111 · Fax +41 22733 7256
+                                                                Rulebook 2026-2027
+
+
+
+ 5. Incidents:
+   5.1. Any serious incident during a match will be assessed by the
+        refereeing committee.
+   5.2. If a team does not arrive on time for a round without a valid
+        justification, the match will be considered lost.
+
+
+
+j. Penalties during the game
+ 1. Any action that breaks the operating rules or expected behaviour
+   may result in a penalty.
+ 2. Non-permitted interactions:
+   2.1. Touching the robot while the round is running: -20 points
+   2.2. Manipulating the field or the game pieces during the round: -20
+        points
+   2.3. Restarting or modifying the robot program during the round: -20
+        points
+ 3. Robot behaviour:
+   3.1. If a robot leaves the field completely: −20 points
+   3.2. If a robot damages structures or game pieces on the field:
+        penalty assessed by the refereeing team.
+   3.3. If a robot creates a risk for the public or other participants: this
+        may result in disqualification.
+ 4. Mission-specific penalties for the Senior category, already included in
+    the “Game procedure” section:
+   4.1. Each sample located outside the quarantine area and outside
+        the laboratory zone at the end of the match: −3 points.
+   4.2. Each sample left inside the quarantine area: −5 points.
+   4.3. Each destination zone left with no kits at the end of the match:
+        −10 points.
+   4.4. Each triaged patient placed in an incorrect destination zone: −5
+        points.
+                                                                                            23
+
+
+
+  International Telecommunication Union · Place des Nations · CH-1211 Geneva 20 · Switzerland
+                           Tel: +41 22730 5111 · Fax +41 22733 7256
+                                                                Rulebook 2026-2027
+
+
+
+   Note: no penalty applies if the yellow cylinders are not split 2-2
+   between the two primary care centres, as long as all of them are
+   placed inside a primary care centre (PCC).
+ 5. Other situations:
+   5.1. If a team seriously breaks the rules, it may be disqualified.
+   5.2. The decisions of the refereeing team are final and must be
+        respected at all times.
+
+
+
+k. Sanctions during the competition day
+ 1. Teams must be punctual and respect the assigned schedules. Any
+    delay may result in sanctions.
+ 2. If a team does not attend its round without a justified reason, the
+    match will be considered lost and will not score.
+ 3. Any form of interference with other teams, their materials or their
+    robots is not allowed. This behaviour may be sanctioned with
+    immediate disqualification.
+ 4. Any act of disrespect towards other participants, the refereeing team
+    or the public may result in penalties or, in serious cases, expulsion
+    from the tournament.
+ 5. The organisation reserves the right to stop a round or disqualify a
+    team if it detects any behaviour that goes against the values of the
+    competition or compromises safety.
+
+
+
+
+                                                                                            24
+
+
+
+  International Telecommunication Union · Place des Nations · CH-1211 Geneva 20 · Switzerland
+                           Tel: +41 22730 5111 · Fax +41 22733 7256
+
