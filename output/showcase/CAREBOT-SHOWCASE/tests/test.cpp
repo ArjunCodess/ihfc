@@ -34,11 +34,11 @@ int main() {
   stopped();
   resetTest();
   drive(145,145);
-  assert(duties[16]==145 && levels[25]==HIGH && levels[26]==LOW);
-  assert(duties[17]==145 && levels[27]==LOW && levels[14]==HIGH); // inverted
+  assert(duties[33]==145 && levels[25]==HIGH && levels[26]==LOW);
+  assert(duties[5]==145 && levels[27]==LOW && levels[14]==HIGH); // inverted
   drive(-100,-100);
-  assert(duties[16]==100 && levels[25]==LOW && levels[26]==HIGH);
-  assert(duties[17]==100 && levels[27]==HIGH && levels[14]==LOW);
+  assert(duties[33]==100 && levels[25]==LOW && levels[26]==HIGH);
+  assert(duties[5]==100 && levels[27]==HIGH && levels[14]==LOW);
   stopMotors(); stopped();
   resetTest();
   echoes={echo(800),echo(600),echo(220),echo(220),echo(220)};
@@ -88,7 +88,7 @@ int main() {
   resetTest(); echoes={echo(220),echo(500),echo(500),echo(500)};
   assert(!wallDistance(400)); stopped();
   resetTest(); echoes={0}; assert(!middleMarker()); assert(movingMs==0);
-  resetTest(); failingWritePin=16; drive(100,100);
+  resetTest(); failingWritePin=33; drive(100,100);
   assert(aborted && !motorPwmAttached[0]); stopped();
   resetTest(); assert(!servoAngle(5,90)); stopped();
   resetTest(); assert(!servoAngle(0,181)); stopped();

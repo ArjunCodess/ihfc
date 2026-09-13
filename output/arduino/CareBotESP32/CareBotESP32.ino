@@ -15,7 +15,7 @@
 // L298N: OUT1/2 = left motor, OUT3/4 = right motor.
 // Remove the ENA and ENB jumpers so the ESP32 can control speed with PWM.
 constexpr uint8_t MOTOR_DIRECTION_PINS[] = {25, 26, 27, 14}; // IN1..IN4
-constexpr uint8_t MOTOR_ENABLE_PINS[] = {16, 17}; // ENA, ENB
+constexpr uint8_t MOTOR_ENABLE_PINS[] = {33, 5}; // ENA, ENB
 constexpr uint8_t TRIG_PIN = 23, ECHO_PIN = 34, IR_PIN = 35;
 constexpr uint8_t START_PIN = 32; // one start button to GND; no stop button
 constexpr uint8_t SERVO_PINS[] = {18, 19, 21, 22, 13};

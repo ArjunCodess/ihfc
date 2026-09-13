@@ -66,7 +66,7 @@ GPIO & Connection \\
 \midrule
 25, 26 & L298N IN1, IN2 for the left motor \\
 27, 14 & L298N IN3, IN4 for the right motor \\
-16, 17 & L298N ENA, ENB motor PWM \\
+33, 5 & L298N ENA, ENB motor PWM \\
 23, 34 & Ultrasonic TRIG, ECHO \\
 35 & Rear IR digital output \\
 18, 19, 21 & Two-kit bin, six-kit bin, two-kit bin servos \\
@@ -75,7 +75,7 @@ GPIO & Connection \\
 \bottomrule
 \end{tabular}
 
-GPIO34 and GPIO35 are input-only pins, which suits the two sensor inputs. A 5 V ultrasonic ECHO signal needs a divider before GPIO34. The planned divider is 10~k$\Omega$ from ECHO to GPIO34 and 15~k$\Omega$ from GPIO34 to ground. The IR output must also remain within the ESP32's 3.3 V input limit. Remove the L298N ENA and ENB jumpers so GPIO16 and GPIO17 can control speed.
+GPIO34 and GPIO35 are input-only pins, which suits the two sensor inputs. A 5 V ultrasonic ECHO signal needs a divider before GPIO34. The planned divider is 10~k$\Omega$ from ECHO to GPIO34 and 15~k$\Omega$ from GPIO34 to ground. The IR output must also remain within the ESP32's 3.3 V input limit. Remove the L298N ENA and ENB jumpers so GPIO33 and GPIO5 can control speed.
 
 \newpage
 \section*{Mission sequence}

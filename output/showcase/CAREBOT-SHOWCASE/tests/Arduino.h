@@ -23,7 +23,7 @@ extern std::function<int(int)> readHook;
 extern std::function<void(std::string)> logHook;
 extern std::function<void()> timeHook;
 inline void advance(uint32_t ms) {
-  if(duties[16] || duties[17]) movingMs+=ms;
+  if(duties[33] || duties[5]) movingMs+=ms;
   tick+=ms;
   if(timeHook) timeHook();
 }
