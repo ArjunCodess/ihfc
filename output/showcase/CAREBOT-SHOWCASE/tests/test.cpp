@@ -16,7 +16,7 @@ SerialMock Serial;
 void resetTest() {
   tick=0; lastPingMs=0; aborted=false; attempted=false;
   for(auto &attached:motorPwmAttached) attached=true;
-  startArmed=false; startHeld=false; startPressMs=0;
+  startArmed=false; startHeld=false; startupCheckPassed=true; startPressMs=0;
   movingMs=0; failingWritePin=-1; readHook=nullptr; logHook=nullptr; timeHook=nullptr;
   echoes.clear(); duties.clear(); levels.clear(); Serial.input.clear();
   lineMode=false;
@@ -29,8 +29,14 @@ void stopped() {
 }
 int main() {
   resetTest();
+  startupCheckPassed=false;
   setup();
-  assert(!aborted);
+  assert(!aborted && startupCheckPassed);
+  stopped();
+  resetTest();
+  startupCheckPassed=false; echoes={0};
+  setup();
+  assert(aborted && !startupCheckPassed);
   stopped();
   resetTest();
   drive(145,145);

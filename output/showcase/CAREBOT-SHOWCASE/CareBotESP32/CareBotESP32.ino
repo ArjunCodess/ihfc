@@ -3,7 +3,7 @@
    Drive pair: dual-shaft 12 V, 500 RPM DC geared motors.
    Motor stall current and loaded travel speed still require measurement.
    No servo library required. See ../README.md before wiring/loading.
-   Serial: s = start once, x = stop; reset and reload for another run.
+   Serial 115200: timestamped logger; s = start once, x = stop.
    All distances/timings below require calibration on the actual robot.
 */
 #include <Arduino.h>
@@ -77,9 +77,25 @@ static_assert(TURN_LEFT_MS > 0 && TURN_LEFT_MS <= LEG_TIMEOUT_MS &&
 bool aborted = false, attempted = false;
 bool motorPwmAttached[2] = {false, false};
 bool startArmed = false, startHeld = false;
+bool startupCheckPassed = false;
 uint32_t startPressMs = 0;
 bool released[5] = {false, false, false, false, false};
 uint32_t lastPingMs = 0;
+
+void logPrefix(const char *level) {
+  Serial.print('['); Serial.print(millis()); Serial.print(" ms] [");
+  Serial.print(level); Serial.print("] ");
+}
+
+void logLine(const char *level, const char *message) {
+  logPrefix(level); Serial.println(message);
+}
+
+void logValue(const char *level, const char *label, float value,
+              const char *unit) {
+  logPrefix(level); Serial.print(label); Serial.print(value);
+  Serial.print(' '); Serial.println(unit);
+}
 
 void stopMotors() {
   for (unsigned i = 0; i < 2; ++i) {
@@ -98,7 +114,7 @@ void stopMotors() {
 
 bool fail(const char *reason) {
   stopMotors();
-  if (!aborted) { Serial.print("STOP: "); Serial.println(reason); }
+  if (!aborted) logLine("ERROR", reason);
   aborted = true;
   return false;
 }
@@ -179,15 +195,54 @@ float rangeMm() {
 
 bool settle() { stopMotors(); return waitChecked(SETTLE_MS); }
 
+bool validatePinAssignments() {
+  const uint8_t pins[] = {
+    MOTOR_DIRECTION_PINS[0], MOTOR_DIRECTION_PINS[1],
+    MOTOR_DIRECTION_PINS[2], MOTOR_DIRECTION_PINS[3],
+    MOTOR_ENABLE_PINS[0], MOTOR_ENABLE_PINS[1], TRIG_PIN, ECHO_PIN,
+    IR_PIN, START_PIN, SERVO_PINS[0], SERVO_PINS[1], SERVO_PINS[2],
+    SERVO_PINS[3], SERVO_PINS[4]
+  };
+  constexpr unsigned pinCount = sizeof(pins) / sizeof(pins[0]);
+  for (unsigned i = 0; i < pinCount; ++i)
+    for (unsigned j = i + 1; j < pinCount; ++j)
+      if (pins[i] == pins[j]) return fail("Duplicate GPIO assignment.");
+  logLine("INFO", "GPIO assignment check passed.");
+  return true;
+}
+
+bool startupSelfCheck() {
+  logLine("INFO", "Starting hardware self-check.");
+  stopMotors();
+  float distance = rangeMm();
+  if (!isfinite(distance))
+    return fail("Ultrasonic self-check failed: no valid echo from 20 to 4000 mm.");
+  logValue("INFO", "Ultrasonic distance: ", distance, "mm");
+  logPrefix("INFO"); Serial.print("IR input: ");
+  Serial.println(digitalRead(IR_PIN) == BLACK_LEVEL ? "BLACK" : "CLEAR");
+  if (digitalRead(START_PIN) == LOW)
+    logLine("WARN", "START is held. Release it before trying to start.");
+  else
+    logLine("INFO", "START input is released.");
+  logLine("INFO", "L298N PWM outputs initialized and motors held off.");
+  logLine("WARN", "No motor feedback sensor: rotation and driver current are not verified.");
+  logLine("WARN", "No servo feedback sensor: commanded positions are not verified.");
+  startupCheckPassed = true;
+  logLine("INFO", "Startup self-check passed.");
+  return true;
+}
+
 // Move toward a wall OR reverse away from it, selected from the initial reading.
 // Confirm three target readings while stopped; bound the entire maneuver.
 bool wallDistance(float targetMm) {
   stopMotors();
+  logValue("INFO", "Wall target: ", targetMm, "mm");
   if (!isfinite(targetMm) || targetMm < MIN_CLEARANCE_MM + WALL_TOLERANCE_MM ||
       targetMm > 4000 - WALL_TOLERANCE_MM)
     return fail("Invalid wall target.");
   float initial = rangeMm();
   if (!isfinite(initial)) return fail("No wall reading at start of move.");
+  logValue("INFO", "Initial wall distance: ", initial, "mm");
   if (initial < MIN_CLEARANCE_MM) return fail("Insufficient front clearance.");
   bool forward = initial > targetMm;
   unsigned confirmed = 0, invalid = 0;
@@ -197,6 +252,7 @@ bool wallDistance(float targetMm) {
     float distance = rangeMm();
     if (!isfinite(distance)) {
       stopMotors(); confirmed = 0;
+      logLine("WARN", "Invalid ultrasonic reading during wall move.");
       if (++invalid >= 3) return fail("Ultrasonic lost the wall.");
       continue;
     }
@@ -205,7 +261,10 @@ bool wallDistance(float targetMm) {
     bool reached = fabsf(distance - targetMm) <= WALL_TOLERANCE_MM;
     if (reached) {
       stopMotors();
-      if (++confirmed >= 3) return settle();
+      if (++confirmed >= 3) {
+        logValue("INFO", "Wall target confirmed at: ", distance, "mm");
+        return settle();
+      }
     } else {
       confirmed = 0;
       // Do not release a load merely because we crossed the target coordinate.
@@ -229,6 +288,9 @@ bool moveMm(float mm) {
   if (!isfinite(durationMs) || durationMs > LEG_TIMEOUT_MS)
     return fail("Timed move exceeds limit.");
   uint32_t duration = uint32_t(ceilf(durationMs));
+  logValue("INFO", "Timed move distance: ", mm, "mm");
+  logPrefix("INFO"); Serial.print("Timed move duration: ");
+  Serial.print(duration); Serial.println(" ms");
   // Validate the forward path BEFORE starting the motion timer.
   if (mm > 0) {
     float distance = rangeMm();
@@ -258,6 +320,9 @@ bool moveMm(float mm) {
 
 bool turn90(bool left) {
   if (!checkStop()) return false;
+  logPrefix("INFO"); Serial.print("Turn 90 degrees ");
+  Serial.print(left ? "left" : "right"); Serial.print(" for ");
+  Serial.print(left ? TURN_LEFT_MS : TURN_RIGHT_MS); Serial.println(" ms");
   // Timing cannot measure angle or side clearance. Check the loaded swept area.
   drive(left ? -TURN_PWM : TURN_PWM, left ? TURN_PWM : -TURN_PWM);
   if (!waitChecked(left ? TURN_LEFT_MS : TURN_RIGHT_MS)) return false;
@@ -269,7 +334,7 @@ bool middleMarker() {
   float initial = rangeMm();
   if (!isfinite(initial)) return fail("No echo before seeking marker.");
   if (initial <= LAST_KIT_WALL_STOP_MM) return fail("Wall before middle marker.");
-  Serial.println("Left middle: seek entry marker for six-kit delivery.");
+  logLine("INFO", "Left middle: seek entry marker for six-kit delivery.");
   uint32_t start = millis(), changeMs = start;
   bool raw = digitalRead(IR_PIN) == BLACK_LEVEL, stable = raw;
   bool armed = false;
@@ -287,7 +352,10 @@ bool middleMarker() {
       if (!raw) armed = true; // must see clear floor before counting black
       if (raw && !stable && armed) {
         armed = false;
-        if (++count == MIDDLE_MARKER_NUMBER) return settle();
+        ++count;
+        logPrefix("INFO"); Serial.print("Black marker count: ");
+        Serial.println(count);
+        if (count == MIDDLE_MARKER_NUMBER) return settle();
       }
       stable = raw;
     }
@@ -300,7 +368,7 @@ bool middleMarker() {
 bool releaseLoad(unsigned index) {
   if (index >= 5 || released[index]) return fail("Invalid or repeated release.");
   if (!settle()) return false;
-  Serial.print("Release servo "); Serial.println(index + 1);
+  logPrefix("INFO"); Serial.print("Release servo "); Serial.println(index + 1);
   if (!servoAngle(index, OPEN_DEG[index])) return false;
   released[index] = true;
   if (!waitChecked(RELEASE_MS)) return false;
@@ -311,6 +379,7 @@ bool releaseLoad(unsigned index) {
 bool releaseBeams() {
   if (released[3] || released[4]) return fail("Repeated beam release.");
   if (!settle()) return false;
+  logLine("INFO", "Opening both beam grippers.");
   if (!servoAngle(3, OPEN_DEG[3])) return false;
   released[3] = true;
   if (!servoAngle(4, OPEN_DEG[4])) return false;
@@ -319,19 +388,20 @@ bool releaseBeams() {
 }
 
 bool runMission() {
+  logLine("INFO", "Mission started.");
   if (!(isfinite(BEAM_LANE_SHIFT_MM) && isfinite(BEAM_DROP_WALL_MM) &&
         BEAM_DROP_WALL_MM >= MIN_CLEARANCE_MM + WALL_TOLERANCE_MM &&
         BEAM_DROP_WALL_MM <= 4000 - WALL_TOLERANCE_MM))
     return fail("Invalid beam drop settings.");
-  Serial.println("Top right -> top left wall; turn down; drop two kits.");
+  logLine("INFO", "Top right -> top left wall; turn down; drop two kits.");
   if (!wallDistance(FIRST_WALL_STOP_MM) || !turn90(true) ||
       !moveMm(FIRST_OUTLET_CORRECTION_MM) || !releaseLoad(0)) return false;
   if (!middleMarker() || !moveMm(MIDDLE_OUTLET_CORRECTION_MM) ||
       !releaseLoad(1)) return false;
-  Serial.println("Bottom left wall: drop last two kits.");
+  logLine("INFO", "Bottom left wall: drop last two kits.");
   if (!wallDistance(LAST_KIT_WALL_STOP_MM) ||
       !moveMm(LAST_OUTLET_CORRECTION_MM) || !releaseLoad(2)) return false;
-  Serial.println("Turn left to face right; align lane above bottom-right quarantine.");
+  logLine("INFO", "Turn left to face right; align lane above bottom-right quarantine.");
   if (!turn90(true)) return false;
   if (fabsf(BEAM_LANE_SHIFT_MM) >= 1) {
     bool north = BEAM_LANE_SHIFT_MM > 0;
@@ -339,14 +409,17 @@ bool runMission() {
         !turn90(!north)) return false;
   }
   if (!wallDistance(BEAM_DROP_WALL_MM)) return false;
-  Serial.println("Open both beam grippers; drop beams and stop.");
+  logLine("INFO", "Open both beam grippers; drop beams and stop.");
   if (!releaseBeams()) return false;
-  Serial.println("Mission complete. Reset and reload before another run.");
+  logLine("INFO", "Mission complete. Reset and reload before another run.");
   return true;
 }
 
 void setup() {
   Serial.begin(115200);
+  startupCheckPassed = false;
+  delay(50);
+  logLine("INFO", "CareBot booting.");
   for (uint8_t pin : MOTOR_DIRECTION_PINS) {
     pinMode(pin, OUTPUT); digitalWrite(pin, LOW);
   }
@@ -356,6 +429,7 @@ void setup() {
   pinMode(TRIG_PIN, OUTPUT); digitalWrite(TRIG_PIN, LOW);
   pinMode(ECHO_PIN, INPUT); pinMode(IR_PIN, INPUT);
   pinMode(START_PIN, INPUT_PULLUP);
+  if (!validatePinAssignments()) return;
   // ENA/ENB use channels 0 and 1; servos use 8..12 on the other group.
   for (unsigned i = 0; i < 2; ++i) {
     if (!ledcAttachChannel(MOTOR_ENABLE_PINS[i], 20000, 8, i)) {
@@ -366,22 +440,25 @@ void setup() {
       fail("Motor PWM initialization failed."); return;
     }
   }
+  logLine("INFO", "L298N PWM channels initialized.");
   for (unsigned i = 0; i < 5; ++i) {
     if (!ledcAttachChannel(SERVO_PINS[i], 50, 16, 8 + i)) {
       fail("Servo PWM allocation failed."); return;
     }
     if (!servoAngle(i, CLOSED_DEG[i])) return;
   }
+  logLine("INFO", "Servo PWM channels initialized and commanded closed.");
   if (!waitChecked(800)) return;
-  Serial.print("Motor: "); Serial.print(MOTOR_RATED_VOLTAGE);
+  logPrefix("INFO"); Serial.print("Motor: "); Serial.print(MOTOR_RATED_VOLTAGE);
   Serial.print(" V, "); Serial.print(MOTOR_RATED_RPM);
   Serial.println(" RPM through L298N.");
-  Serial.println("Ready. Load bins 2/6/2. Press START or send s. x stops.");
+  if (!startupSelfCheck()) return;
+  logLine("INFO", "Ready. Load bins 2/6/2. Press START or send s. x stops.");
 }
 
 void loop() {
   stopMotors();
-  if (aborted || attempted) { delay(10); return; }
+  if (aborted || attempted || !startupCheckPassed) { delay(10); return; }
   bool start = false;
   bool pressed = digitalRead(START_PIN) == LOW;
   if (!pressed) { startArmed = true; startHeld = false; }
@@ -392,11 +469,15 @@ void loop() {
   while (Serial.available()) {
     char c = Serial.read();
     if (c == 'x' || c == 'X') { fail("Serial stop."); return; }
-    if (c == 's' || c == 'S') start = true;
+    if (c == 's' || c == 'S') {
+      logLine("INFO", "Serial start command received.");
+      start = true;
+    }
   }
   if (start && checkStop()) {
+    logLine("INFO", "Start accepted.");
     attempted = true;
-    runMission();
+    if (!runMission() && !aborted) fail("Mission stopped without a reported fault.");
     stopMotors();
   }
   delay(5);

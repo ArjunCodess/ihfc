@@ -1,6 +1,6 @@
 # Verification evidence
 
-This pack contains the current L298N sketch with open-only deliveries. Both beam grippers open at one final stop; the robot does not reverse or close the servos after release.
+This pack contains the current L298N sketch with open-only deliveries and timestamped Serial logging. Both beam grippers open at one final stop; the robot does not reverse or close the servos after release.
 
 ## Actual ESP32 compilation
 
@@ -11,7 +11,7 @@ This pack contains the current L298N sketch with open-only deliveries. Both beam
 - Static RAM: **21,008 bytes**, 6%.
 - Saved output: `evidence/esp32-compile.log`.
 
-This was a real board-toolchain compilation, not just host C++ syntax checking. The bundle has no compiled firmware binary because the movement and drop settings still need calibration; build your calibrated source before uploading.
+This was a real board-toolchain compilation of the earlier driver revision. The current L298N logger revision passes a warning-clean C++17 compile against the host harness, but needs a fresh Arduino board build before upload. The bundle has no compiled firmware binary because the movement and drop settings still need calibration; build your calibrated source before uploading.
 
 ## Portable host regression tests
 
@@ -25,6 +25,8 @@ g++ -std=c++17 -Wall -Wextra -Werror -I tests tests/test.cpp -o carebot-tests
 ```
 
 Coverage includes both motor directions, motor-control failure, forward and reverse wall targets, missing echoes, wall overshoot, timed movement duration, invalid parameters, stop during movement, initially-black and noisy markers, marker timeouts, start debounce, repeated releases, the complete route, and stationary beam release with all delivered servos left open.
+
+The startup tests cover a successful self-check and refusal to arm when the ultrasonic sensor returns no echo. All faults use the same ERROR logger and stop both motor-enable outputs.
 
 The packaged tests were re-run after making the paths portable. Their output is saved in `evidence/host-tests.log`.
 

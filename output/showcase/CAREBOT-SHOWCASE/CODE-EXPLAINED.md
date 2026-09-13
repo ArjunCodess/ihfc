@@ -29,6 +29,8 @@ The left-side separator marks entry to the middle area. A configurable offset ac
 | `releaseLoad()` | Opens one bin or gripper once and leaves it open. The route uses it for the three bins. |
 | `releaseBeams()` | Opens both grippers at the same stationary pose. |
 | `fail()` / `checkStop()` | Stop the motors on a fault or a connected Serial `x` command. |
+| `logLine()` / `logValue()` | Write timestamped INFO, WARN and ERROR messages at 115200 baud. |
+| `startupSelfCheck()` | Check configuration, PWM setup, ultrasonic response, IR state and START before arming the mission. |
 
 ## What the five servos do
 

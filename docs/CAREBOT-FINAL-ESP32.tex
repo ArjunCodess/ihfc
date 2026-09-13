@@ -95,7 +95,9 @@ The code releases a complete preloaded group; it does not count individual kits.
 
 The final sketch is \texttt{output/arduino/CareBotESP32/CareBotESP32.ino}. Select \textbf{DOIT ESP32 DEVKIT V1} in Arduino IDE and use the Espressif Arduino-ESP32 3.x board package. No separate servo library is required.
 
-On boot, the program commands all five servos closed. The start button must first be released and then held for at least 40 ms. One press starts one mission; reset is required before another run. Sending \texttt{x} through Serial Monitor at 115200 baud stops the motors while USB remains connected. The main switch provides the physical power stop.
+On boot, the program commands all five servos closed and runs a startup self-check. It verifies unique GPIO assignments, PWM setup, servo commands, one valid ultrasonic echo, the IR input state, and the START input state. A missing ultrasonic echo blocks the mission. The start button must first be released and then held for at least 40 ms. One press starts one mission; reset is required before another run. Sending \texttt{x} through Serial Monitor at 115200 baud stops the motors while USB remains connected. The main switch provides the physical power stop.
+
+Serial messages contain a millisecond timestamp and an \texttt{INFO}, \texttt{WARN}, or \texttt{ERROR} severity. Every reported error disables both L298N enable outputs. The program warns that it cannot verify motor rotation, driver current, or servo position because those devices have no feedback connections.
 
 The program stops on missing ultrasonic echoes, wall-target overshoot, missing markers, travel timeout, invalid settings, invalid servo commands, or a motor PWM failure. It requires three stationary wall readings within tolerance before accepting a wall stop. It does not have sensors to verify an empty bin or an upright beam.
 
@@ -107,7 +109,7 @@ The front ultrasonic sensor must see past or below the carried front beam. The r
 
 \section*{Verification status}
 
-The final source compiles for \texttt{esp32:esp32:esp32doit-devkit-v1} with Arduino-ESP32 3.3.5 and all warnings enabled. Host regression tests cover motor direction, sensor failures, wall overshoot, start debounce, marker handling, the full 2--6--2 route, open-only flaps, and stationary release of both beams. No physical robot run has been completed, so mechanical and navigation performance remain unverified.
+The earlier source compiled for \texttt{esp32:esp32:esp32doit-devkit-v1} with Arduino-ESP32 3.3.5 and all warnings enabled. The current L298N logger revision passes a warning-clean C++17 compile against the host regression harness. Run a fresh Arduino board build before uploading. The tests cover motor direction, startup sensor failure, wall overshoot, start debounce, marker handling, the full 2--6--2 route, open-only flaps, and stationary release of both beams. No physical robot run has been completed, so mechanical and navigation performance remain unverified.
 
 \section*{Second robot status}
 

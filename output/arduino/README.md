@@ -36,7 +36,15 @@ Connect OUT1/OUT2 to the left motor and OUT3/OUT4 to the right motor. Remove the
 
 Check that the L298N module's continuous-current and startup/stall-current capability matches the motors. The motors are rated 12 V and 500 RPM, but their stall current still needs measurement or a trustworthy datasheet. The L298N also drops some voltage, so the motors will receive less than the battery voltage while running.
 
-Use a separate regulated servo supply sized for all five servos, and join its ground to the ESP32 and motor-driver grounds. Do not power the servos from ESP32 3.3 V. For a 5 V HC-SR04, use a divider on ECHO: ECHO -> 10 kΩ -> GPIO34 -> 15 kΩ -> GND, giving about 3 V. GPIO35 also needs a 3.3 V-compatible IR output; it has no internal pull-up. If the module has an open-collector output, provide an external pull-up to 3.3 V. The motor-input pull-downs described above keep the motors off during reset.
+Use a separate regulated servo supply sized for all five servos, and join its ground to the ESP32 and motor-driver grounds. Do not power the servos from ESP32 3.3 V. For a 5 V HC-SR04, use a divider on ECHO: ECHO -> 10 kΩ -> GPIO34 -> 15 kΩ -> GND, giving about 3 V. GPIO35 also needs a 3.3 V-compatible IR output; it has no internal pull-up. If the module has an open-collector output, provide an external pull-up to 3.3 V. Keep both L298N enable jumpers removed so the ESP32 controls when the motors run.
+
+## Serial logger and startup check
+
+Open Serial Monitor at **115200 baud** before resetting the ESP32. Messages contain a timestamp and severity, for example `[912 ms] [INFO] Startup self-check passed.` Every reported `ERROR` stops both L298N enable outputs and prevents the mission from continuing.
+
+At startup, the sketch checks for duplicate GPIO assignments, initializes both motor PWM channels, commands all servo channels closed, requires one valid ultrasonic reading from 20 to 4000 mm, reports the IR input state, and reports whether START is held. The mission cannot start until these checks pass. Place a solid target within the ultrasonic sensor's range before resetting the board.
+
+The L298N has no feedback connection, so the ESP32 cannot confirm motor rotation, motor current, or whether driver power is present. Standard positional servos also provide no position feedback. The logger reports these limits as `WARN` messages. Test motor direction with the chassis raised and confirm servo movement visually.
 
 The front ultrasonic must see past or below the loaded front beam. If it sees the beam itself, the wall route cannot work. The rear IR must point down at the floor. Its job is to detect crossing markers; one binary sensor does not continuously correct steering or recover position after a bad turn.
 
