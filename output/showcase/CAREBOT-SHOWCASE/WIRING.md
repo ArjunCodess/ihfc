@@ -1,13 +1,15 @@
 # Wiring sheet
 
-This pin map is for a DOIT ESP32 DEVKIT V1 and DRV8833. Use the GPIO numbers printed on the board, not the physical pin positions. GPIO34 and GPIO35 are input-only pins, which is correct here because they receive the ultrasonic ECHO and IR signals.
+This pin map is for a DOIT ESP32 DEVKIT V1 and L298N. Use the GPIO numbers printed on the board, not the physical pin positions. GPIO34 and GPIO35 are input-only pins, which is correct here because they receive the ultrasonic ECHO and IR signals.
 
 | ESP32 GPIO | Connect to |
 | ---: | --- |
-| 25 | DRV8833 AIN1 |
-| 26 | DRV8833 AIN2 |
-| 27 | DRV8833 BIN1 |
-| 14 | DRV8833 BIN2 |
+| 25 | L298N IN1 |
+| 26 | L298N IN2 |
+| 27 | L298N IN3 |
+| 14 | L298N IN4 |
+| 16 | L298N ENA, remove its jumper |
+| 17 | L298N ENB, remove its jumper |
 | 23 | Ultrasonic TRIG |
 | 34 | Ultrasonic ECHO through the divider below |
 | 35 | Rear IR sensor digital output, at a compatible logic voltage |
@@ -20,13 +22,14 @@ This pin map is for a DOIT ESP32 DEVKIT V1 and DRV8833. Use the GPIO numbers pri
 
 ## Motor driver and power
 
-- AOUT1/AOUT2 connect to the left motor. BOUT1/BOUT2 connect to the right motor.
-- The motors are rated 12 V, but DRV8833 VM has a 2.7–10.8 V operating range. Never connect a 12 V supply to this driver's VM pin. Replace the driver for 12 V operation, or use no more than 10.8 V and accept reduced motor speed. The replacement must also handle the measured stall current.
-- Hold nSLEEP high at 3.3 V if the breakout does not already do so. Check its exact pin labels.
+- OUT1/OUT2 connect to the left motor. OUT3/OUT4 connect to the right motor.
+- Connect battery positive to the L298N 12 V motor-supply terminal. Connect battery negative to L298N GND.
+- Remove the ENA and ENB jumpers. GPIO16 and GPIO17 supply PWM to those pins.
+- Never connect 12 V to the module's 5 V terminal or directly to the ESP32. Follow the exact module's instructions for its 5 V regulator jumper.
+- Confirm that the L298N module can handle each motor's startup and stall current.
 - Supply all five servos from a separate suitable regulated rail. The regulator must handle their combined demands; its current rating cannot be finalized until the servo models and loads are known.
 - Power the ESP32 DevKit through its supported USB or regulated board-power input. Follow that board's requirements; do not connect a raw motor battery to its 3.3 V pin.
 - Join the ESP32, sensors, servo supply and motor-driver grounds.
-- If the driver board does not provide them, add pull-downs to its four control inputs so the motor inputs remain low during reset.
 
 ## Ultrasonic ECHO divider
 

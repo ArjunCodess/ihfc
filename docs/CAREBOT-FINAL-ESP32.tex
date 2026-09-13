@@ -45,7 +45,7 @@ The robot starts in the top-right area facing left. It uses a front ultrasonic s
 Component & Quantity & Job \\
 \midrule
 DOIT ESP32 DEVKIT V1 & 1 & Main controller \\
-DRV8833 dual motor-driver module & 1 & Controls both drive motors \\
+L298N dual motor-driver module & 1 & Controls both drive motors \\
 Dual-shaft 12 V, 500 RPM DC geared motor & 2 & Left and right drive \\
 Front ultrasonic sensor & 1 & Wall-distance measurement \\
 Rear digital IR reflectance sensor & 1 & Black-crossing detection \\
@@ -56,7 +56,7 @@ Main power switch & 1 & Disconnects the battery \\
 \bottomrule
 \end{tabular}
 
-The motors are rated for 12~V, but the DRV8833 motor-supply operating range ends at 10.8~V. The DRV8833 must not receive 12~V. Use a 12~V-capable driver sized for the motors' stall current, or power the current driver at no more than 10.8~V and accept reduced speed. The servo supply must be regulated and sized for five servos. Servos must not draw power through the ESP32 board. All supplies and modules share ground.
+The motors are rated for 12~V. The L298N module must handle each motor's measured startup and stall current. Its bridge also drops some voltage, so the motors receive less than the battery voltage while running. The servo supply must be regulated and sized for five servos. Servos must not draw power through the ESP32 board. All supplies and modules share ground.
 
 \section*{ESP32 pin map}
 
@@ -64,8 +64,9 @@ The motors are rated for 12~V, but the DRV8833 motor-supply operating range ends
 \toprule
 GPIO & Connection \\
 \midrule
-25, 26 & DRV8833 AIN1, AIN2 for the left motor \\
-27, 14 & DRV8833 BIN1, BIN2 for the right motor \\
+25, 26 & L298N IN1, IN2 for the left motor \\
+27, 14 & L298N IN3, IN4 for the right motor \\
+16, 17 & L298N ENA, ENB motor PWM \\
 23, 34 & Ultrasonic TRIG, ECHO \\
 35 & Rear IR digital output \\
 18, 19, 21 & Two-kit bin, six-kit bin, two-kit bin servos \\
@@ -74,7 +75,7 @@ GPIO & Connection \\
 \bottomrule
 \end{tabular}
 
-GPIO34 and GPIO35 are input-only pins, which suits the two sensor inputs. A 5 V ultrasonic ECHO signal needs a divider before GPIO34. The planned divider is 10~k$\Omega$ from ECHO to GPIO34 and 15~k$\Omega$ from GPIO34 to ground. The IR output must also remain within the ESP32's 3.3 V input limit. Hold DRV8833 nSLEEP high if the breakout does not already provide a pull-up.
+GPIO34 and GPIO35 are input-only pins, which suits the two sensor inputs. A 5 V ultrasonic ECHO signal needs a divider before GPIO34. The planned divider is 10~k$\Omega$ from ECHO to GPIO34 and 15~k$\Omega$ from GPIO34 to ground. The IR output must also remain within the ESP32's 3.3 V input limit. Remove the L298N ENA and ENB jumpers so GPIO16 and GPIO17 can control speed.
 
 \newpage
 \section*{Mission sequence}

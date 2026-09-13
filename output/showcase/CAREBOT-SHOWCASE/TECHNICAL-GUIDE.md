@@ -2,7 +2,7 @@
 
 Open `CareBotESP32/CareBotESP32.ino` in Arduino IDE. This implements the new route in your message, including the photographed chassis with a transverse front beam and a lengthwise right beam. The old document's Uno, camera and 45-degree branch are not used.
 
-The sketch uses a DOIT ESP32 DEVKIT V1 with two dual-shaft 12 V, 500 RPM DC geared motors. The current DRV8833 design cannot run from a 12 V motor supply because its recommended VM range ends at 10.8 V. Use a motor driver rated for 12 V and for each motor's measured stall current, or power the DRV8833 at no more than 10.8 V and accept reduced motor speed. Keep `MOTOR_POWER_STAGE_CONFIRMED_COMPATIBLE` false until this has been checked. There is one start button and no physical stop button; Serial x remains available while connected. Select **DOIT ESP32 DEVKIT V1**, install **esp32 by Espressif Systems 3.x**, and use Serial Monitor at **115200 baud**. No extra servo library is needed.
+The sketch uses a DOIT ESP32 DEVKIT V1, an L298N module and two dual-shaft 12 V, 500 RPM DC geared motors. Confirm that the module can handle each motor's measured stall current. There is one start button and no physical stop button; Serial x remains available while connected. Select **DOIT ESP32 DEVKIT V1**, install **esp32 by Espressif Systems 3.x**, and use Serial Monitor at **115200 baud**. No extra servo library is needed.
 
 ## What it does
 
@@ -23,17 +23,18 @@ The complete kit-and-beam route is enabled. `BEAM_DROP_WALL_MM = 220` is an exam
 
 | Device | ESP32 GPIO |
 | --- | --- |
-| DRV8833 AIN1 / AIN2, left motor PWM | 25 / 26 |
-| DRV8833 BIN1 / BIN2, right motor PWM | 27 / 14 |
+| L298N IN1 / IN2, left motor direction | 25 / 26 |
+| L298N IN3 / IN4, right motor direction | 27 / 14 |
+| L298N ENA / ENB, motor PWM | 16 / 17 |
 | Ultrasonic TRIG / ECHO | 23 / 34 |
 | Rear IR digital output | 35 |
 | Bin A / middle bin / bin B servo signal | 18 / 19 / 21 |
 | Right / front beam gripper servo signal | 22 / 13 |
 | Start button to GND | 32 |
 
-Connect AOUT1/AOUT2 to the left motor and BOUT1/BOUT2 to the right motor. Connect VM to a supply matched to the motors and within the DRV8833 operating range of 2.7–10.8 V. Connect nSLEEP to 3.3 V if the breakout does not already hold it high. PWM goes directly to the four input pins; GPIO16 and GPIO17 are unused. There are no L298N enable or regulator jumpers in this wiring. Add input pull-downs if the module does not already provide them, so reset leaves both motor bridges off.
+Connect OUT1/OUT2 to the left motor and OUT3/OUT4 to the right motor. Remove the ENA and ENB jumpers, then connect ENA to GPIO16 and ENB to GPIO17 for PWM speed control. Connect the 12 V motor supply to the L298N motor-supply terminal and join the supply, L298N and ESP32 grounds. Never connect 12 V to the module's 5 V terminal or directly to the ESP32. Follow the exact module's instructions for its 5 V regulator jumper.
 
-Choose a documented breakout whose voltage, continuous-current and startup/stall-current capability matches the motor pair. DRV8833 current ratings depend on package and board cooling; a generic 2 A label is not a continuous rating for every board. The motors are rated 12 V and 500 RPM, but their stall current still needs measurement or a trustworthy datasheet.
+Check that the L298N module's continuous-current and startup/stall-current capability matches the motors. The motors are rated 12 V and 500 RPM, but their stall current still needs measurement or a trustworthy datasheet. The L298N also drops some voltage, so the motors will receive less than the battery voltage while running.
 
 Use a separate regulated servo supply sized for all five servos, and join its ground to the ESP32 and motor-driver grounds. Do not power the servos from ESP32 3.3 V. For a 5 V HC-SR04, use a divider on ECHO: ECHO -> 10 kΩ -> GPIO34 -> 15 kΩ -> GND, giving about 3 V. GPIO35 also needs a 3.3 V-compatible IR output; it has no internal pull-up. If the module has an open-collector output, provide an external pull-up to 3.3 V. The motor-input pull-downs described above keep the motors off during reset.
 
@@ -65,7 +66,7 @@ Every travel leg has a timeout. Missing ultrasonic echoes stop travel instead of
 
 Validation: host C++ regression tests passed with warnings treated as errors, including the complete kit-and-beam route, flaps staying open, and stationary beam release. The actual ESP32 build is recorded in `REVIEW.md`. No physical robot testing has been performed.
 
-PWM setup follows [Espressif's Arduino-ESP32 LEDC API](https://docs.espressif.com/projects/arduino-esp32/en/latest/api/ledc.html). Motor control follows the [TI DRV8833 datasheet](https://www.ti.com/lit/ds/symlink/drv8833.pdf). Four motor-input PWM channels and five servo channels are allocated on the DOIT ESP32 DEVKIT V1; this pin map is not for an ESP32-CAM, C3 or S3.
+PWM setup follows [Espressif's Arduino-ESP32 LEDC API](https://docs.espressif.com/projects/arduino-esp32/en/latest/api/ledc.html). Motor control follows the [ST L298 datasheet](https://www.st.com/resource/en/datasheet/l298.pdf). Two motor-enable PWM channels and five servo channels are allocated on the DOIT ESP32 DEVKIT V1; this pin map is not for an ESP32-CAM, C3 or S3.
 
 
 ## Gripper options and current quantities
@@ -76,7 +77,7 @@ The Amazon listing and Thingiverse model could not be read well enough to verify
 
 For the documented 60 × 20 mm beam cross-section, jaws gripping across the narrow faces need to open beyond 20 mm with clearance. Grip near the beam's lengthwise centre and use broad padded contacts to resist rotation. A retaining lip or shaped jaw can carry weight without relying only on friction, but it must withdraw completely when opened so the beam can fall free. Test one mechanism with the actual beam, through turns and release, before duplicating it.
 
-Current electronics: one DOIT ESP32 DEVKIT V1, one DRV8833 module, two dual-shaft 12 V, 500 RPM DC geared motors, five servos, one front ultrasonic sensor, one rear downward IR sensor, and one start button. The DRV8833 must be replaced for 12 V operation or supplied with no more than 10.8 V. Add battery and suitable regulated supplies, wiring and a main power switch. No separate stop pushbutton is used.
+Current electronics: one DOIT ESP32 DEVKIT V1, one L298N module, two dual-shaft 12 V, 500 RPM DC geared motors, five servos, one front ultrasonic sensor, one rear downward IR sensor, and one start button. Add battery and suitable regulated supplies, wiring and a main power switch. No separate stop pushbutton is used.
 
 ## Remaining build items
 

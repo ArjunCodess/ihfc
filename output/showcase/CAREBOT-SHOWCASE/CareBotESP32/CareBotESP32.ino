@@ -1,8 +1,6 @@
 /* CareBot: three preloaded flap bins (2, 6, 2) and two beam grippers.
-   Target: DOIT ESP32 DEVKIT V1, Arduino-ESP32 3.x, DRV8833.
+   Target: DOIT ESP32 DEVKIT V1, Arduino-ESP32 3.x, L298N.
    Drive pair: dual-shaft 12 V, 500 RPM DC geared motors.
-   IMPORTANT: DRV8833 VM must stay at or below 10.8 V. Do not connect 12 V
-   directly to VM. Use a suitable 12 V motor driver to run at the rated voltage.
    Motor stall current and loaded travel speed still require measurement.
    No servo library required. See ../README.md before wiring/loading.
    Serial: s = start once, x = stop; reset and reload for another run.
@@ -14,18 +12,15 @@
 #error "Select a classic ESP32 target such as DOIT ESP32 DEVKIT V1."
 #endif
 
-// DRV8833: AOUT1/2 = left motor, BOUT1/2 = right motor.
-// nSLEEP must be HIGH (3.3 V); check the breakout's pull-up and pin labels.
-constexpr uint8_t MOTOR_PINS[] = {25, 26, 27, 14}; // AIN1, AIN2, BIN1, BIN2
+// L298N: OUT1/2 = left motor, OUT3/4 = right motor.
+// Remove the ENA and ENB jumpers so the ESP32 can control speed with PWM.
+constexpr uint8_t MOTOR_DIRECTION_PINS[] = {25, 26, 27, 14}; // IN1..IN4
+constexpr uint8_t MOTOR_ENABLE_PINS[] = {16, 17}; // ENA, ENB
 constexpr uint8_t TRIG_PIN = 23, ECHO_PIN = 34, IR_PIN = 35;
 constexpr uint8_t START_PIN = 32; // one start button to GND; no stop button
 constexpr uint8_t SERVO_PINS[] = {18, 19, 21, 22, 13};
 constexpr float MOTOR_RATED_VOLTAGE = 12.0f;
 constexpr unsigned MOTOR_RATED_RPM = 500;
-constexpr float DRV8833_MAX_VM_VOLTAGE = 10.8f;
-// Keep false until the motor supply/driver combination has been checked against
-// the motor stall current and voltage. The stock DRV8833 is not valid at 12 V.
-constexpr bool MOTOR_POWER_STAGE_CONFIRMED_COMPATIBLE = false;
 // Servo indices: small A, six-kit bin, small B, right beam, front beam.
 constexpr int CLOSED_DEG[] = {15, 15, 15, 35, 35};
 constexpr int OPEN_DEG[] = {100, 100, 100, 110, 110};
@@ -33,7 +28,7 @@ constexpr uint32_t SERVO_MIN_US = 1000, SERVO_MAX_US = 2000;
 constexpr int BLACK_LEVEL = LOW; // change to HIGH if your module is inverted
 constexpr bool INVERT_LEFT = false, INVERT_RIGHT = true;
 // RPM is not used as wheel speed. Keep these conservative starting values and
-// calibrate them with the loaded robot. A 12 V supply requires another driver.
+// calibrate them with the loaded robot.
 constexpr int DRIVE_PWM = 145, SLOW_PWM = 100, TURN_PWM = 125;
 constexpr int LEFT_TRIM = 0, RIGHT_TRIM = 0;
 constexpr uint32_t TURN_LEFT_MS = 580, TURN_RIGHT_MS = 580;
@@ -80,24 +75,25 @@ static_assert(TURN_LEFT_MS > 0 && TURN_LEFT_MS <= LEG_TIMEOUT_MS &&
               "Turn duration must fit within a travel leg.");
 
 bool aborted = false, attempted = false;
-bool motorAttached[4] = {false, false, false, false};
+bool motorPwmAttached[2] = {false, false};
 bool startArmed = false, startHeld = false;
 uint32_t startPressMs = 0;
 bool released[5] = {false, false, false, false, false};
 uint32_t lastPingMs = 0;
 
 void stopMotors() {
-  for (unsigned i = 0; i < 4; ++i) {
-    uint8_t pin = MOTOR_PINS[i];
-    if (motorAttached[i]) {
+  for (unsigned i = 0; i < 2; ++i) {
+    uint8_t pin = MOTOR_ENABLE_PINS[i];
+    if (motorPwmAttached[i]) {
       if (ledcWrite(pin, 0)) continue;
       // If PWM control fails, detach it before forcing the GPIO low.
       ledcDetach(pin);
-      motorAttached[i] = false;
+      motorPwmAttached[i] = false;
       pinMode(pin, OUTPUT);
     }
     digitalWrite(pin, LOW);
   }
+  for (uint8_t pin : MOTOR_DIRECTION_PINS) digitalWrite(pin, LOW);
 }
 
 bool fail(const char *reason) {
@@ -125,20 +121,25 @@ bool waitChecked(uint32_t durationMs) {
   return checkStop();
 }
 
-void setMotor(uint8_t in1, uint8_t in2, int speed, bool invert) {
+void setMotor(uint8_t in1, uint8_t in2, uint8_t enable,
+              int speed, bool invert) {
   speed = constrain(invert ? -speed : speed, -255, 255);
-  // Both inputs LOW = coast. Clear the old direction before applying PWM.
-  if (!ledcWrite(in1, 0) || !ledcWrite(in2, 0) ||
-      (speed > 0 && !ledcWrite(in1, speed)) ||
-      (speed < 0 && !ledcWrite(in2, -speed)))
-    fail("Motor PWM write failed.");
+  // Disable the bridge before changing direction, then apply PWM to ENA/ENB.
+  if (!ledcWrite(enable, 0)) { fail("Motor PWM write failed."); return; }
+  digitalWrite(in1, LOW);
+  digitalWrite(in2, LOW);
+  if (speed == 0) return;
+  digitalWrite(speed > 0 ? in1 : in2, HIGH);
+  if (!ledcWrite(enable, abs(speed))) fail("Motor PWM write failed.");
 }
 
 void drive(int left, int right) {
   if (aborted) { stopMotors(); return; }
-  setMotor(MOTOR_PINS[0], MOTOR_PINS[1], left, INVERT_LEFT);
+  setMotor(MOTOR_DIRECTION_PINS[0], MOTOR_DIRECTION_PINS[1],
+           MOTOR_ENABLE_PINS[0], left, INVERT_LEFT);
   if (aborted) return;
-  setMotor(MOTOR_PINS[2], MOTOR_PINS[3], right, INVERT_RIGHT);
+  setMotor(MOTOR_DIRECTION_PINS[2], MOTOR_DIRECTION_PINS[3],
+           MOTOR_ENABLE_PINS[1], right, INVERT_RIGHT);
 }
 
 void straight(int pwm) {
@@ -346,21 +347,22 @@ bool runMission() {
 
 void setup() {
   Serial.begin(115200);
-  for (uint8_t pin : MOTOR_PINS) { pinMode(pin, OUTPUT); digitalWrite(pin, LOW); }
-  if (!MOTOR_POWER_STAGE_CONFIRMED_COMPATIBLE) {
-    fail("Motor power stage not confirmed. DRV8833 cannot use a 12 V VM supply.");
-    return;
+  for (uint8_t pin : MOTOR_DIRECTION_PINS) {
+    pinMode(pin, OUTPUT); digitalWrite(pin, LOW);
+  }
+  for (uint8_t pin : MOTOR_ENABLE_PINS) {
+    pinMode(pin, OUTPUT); digitalWrite(pin, LOW);
   }
   pinMode(TRIG_PIN, OUTPUT); digitalWrite(TRIG_PIN, LOW);
   pinMode(ECHO_PIN, INPUT); pinMode(IR_PIN, INPUT);
   pinMode(START_PIN, INPUT_PULLUP);
-  // Motor inputs use channels 0..3; servos use 8..12 on the other group.
-  for (unsigned i = 0; i < 4; ++i) {
-    if (!ledcAttachChannel(MOTOR_PINS[i], 20000, 8, i)) {
+  // ENA/ENB use channels 0 and 1; servos use 8..12 on the other group.
+  for (unsigned i = 0; i < 2; ++i) {
+    if (!ledcAttachChannel(MOTOR_ENABLE_PINS[i], 20000, 8, i)) {
       fail("Motor PWM allocation failed."); return;
     }
-    motorAttached[i] = true;
-    if (!ledcWrite(MOTOR_PINS[i], 0)) {
+    motorPwmAttached[i] = true;
+    if (!ledcWrite(MOTOR_ENABLE_PINS[i], 0)) {
       fail("Motor PWM initialization failed."); return;
     }
   }
@@ -373,9 +375,7 @@ void setup() {
   if (!waitChecked(800)) return;
   Serial.print("Motor: "); Serial.print(MOTOR_RATED_VOLTAGE);
   Serial.print(" V, "); Serial.print(MOTOR_RATED_RPM);
-  Serial.print(" RPM. DRV8833 VM limit: ");
-  Serial.print(DRV8833_MAX_VM_VOLTAGE); Serial.println(" V.");
-  Serial.println("Do not apply 12 V to DRV8833 VM; use a 12 V-rated driver for 12 V operation.");
+  Serial.println(" RPM through L298N.");
   Serial.println("Ready. Load bins 2/6/2. Press START or send s. x stops.");
 }
 

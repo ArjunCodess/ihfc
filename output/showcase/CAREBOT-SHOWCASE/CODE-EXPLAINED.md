@@ -24,7 +24,7 @@ The left-side separator marks entry to the middle area. A configurable offset ac
 | `middleMarker()` | Requires clear floor, then counts debounced black crossings. Stops on a missing marker or unexpected wall. |
 | `moveMm()` | Converts a small calibrated forward/reverse offset to running time. This is an estimate without encoders. |
 | `turn90()` | Runs the wheels in opposite directions for a calibrated turn duration. |
-| `drive()` / `setMotor()` | Set the direction and PWM duty on the DRV8833 inputs. |
+| `drive()` / `setMotor()` | Set L298N direction inputs and ENA/ENB PWM duty. |
 | `servoAngle()` | Converts a requested position to a 50 Hz servo pulse. |
 | `releaseLoad()` | Opens one bin or gripper once and leaves it open. The route uses it for the three bins. |
 | `releaseBeams()` | Opens both grippers at the same stationary pose. |

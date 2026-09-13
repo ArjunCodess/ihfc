@@ -31,4 +31,4 @@ Release START after powering up, load the robot after the servos close, then pre
 
 The packaged source passed an actual ESP32 compilation and host regression tests. It has not been tested on a physical robot. Motor electrical specifications, servo sizing, movement timings, landing positions and the battery setup still need checking. The source contains example calibration values; a successful compile does not make those values correct for your chassis.
 
-Only the current DRV8833, open-only servo version is included. The development workspace's old test sketch and older L298N variants are not part of this pack.
+Only the current L298N, open-only servo version is included. Older motor-driver variants are not part of this pack.

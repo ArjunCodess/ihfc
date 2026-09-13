@@ -1,6 +1,6 @@
 # Verification evidence
 
-This pack contains the current DRV8833 sketch with open-only deliveries. Both beam grippers open at one final stop; the robot does not reverse or close the servos after release.
+This pack contains the current L298N sketch with open-only deliveries. Both beam grippers open at one final stop; the robot does not reverse or close the servos after release.
 
 ## Actual ESP32 compilation
 

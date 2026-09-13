@@ -43,4 +43,4 @@ If you have completed physical testing, replace the last sentence with your reco
 
 **What happens if a sensor fails?** Invalid echoes or a missing marker stop the program. Reset is needed before another attempt.
 
-**Why DRV8833?** It controls both DC motors using ESP32 logic and has lower conduction loss than an L298N. The exact board must still match the motors' current demand.
+**Why L298N?** It controls both 12 V motors with separate direction and PWM-enable inputs. The module still needs enough current capacity for motor startup and stall.

@@ -15,7 +15,7 @@ SerialMock Serial;
 #include "../CareBotESP32/CareBotESP32.ino"
 void resetTest() {
   tick=0; lastPingMs=0; aborted=false; attempted=false;
-  for(auto &attached:motorAttached) attached=true;
+  for(auto &attached:motorPwmAttached) attached=true;
   startArmed=false; startHeld=false; startPressMs=0;
   movingMs=0; failingWritePin=-1; readHook=nullptr; logHook=nullptr; timeHook=nullptr;
   echoes.clear(); duties.clear(); levels.clear(); Serial.input.clear();
@@ -24,20 +24,21 @@ void resetTest() {
 }
 uint32_t echo(float mm) {return uint32_t(mm*2/0.343f);}
 void stopped() {
-  for(auto p:MOTOR_PINS) assert(duties[p]==0);
+  for(auto p:MOTOR_ENABLE_PINS) assert(duties[p]==0);
+  for(auto p:MOTOR_DIRECTION_PINS) assert(levels[p]==LOW);
 }
 int main() {
   resetTest();
   setup();
-  assert(aborted); // 12 V motors must not arm the 10.8 V-max DRV8833 by default
+  assert(!aborted);
   stopped();
   resetTest();
   drive(145,145);
-  assert(duties[25]==145 && duties[26]==0);
-  assert(duties[27]==0 && duties[14]==145); // right motor inverted
+  assert(duties[16]==145 && levels[25]==HIGH && levels[26]==LOW);
+  assert(duties[17]==145 && levels[27]==LOW && levels[14]==HIGH); // inverted
   drive(-100,-100);
-  assert(duties[25]==0 && duties[26]==100);
-  assert(duties[27]==100 && duties[14]==0);
+  assert(duties[16]==100 && levels[25]==LOW && levels[26]==HIGH);
+  assert(duties[17]==100 && levels[27]==HIGH && levels[14]==LOW);
   stopMotors(); stopped();
   resetTest();
   echoes={echo(800),echo(600),echo(220),echo(220),echo(220)};
@@ -87,8 +88,8 @@ int main() {
   resetTest(); echoes={echo(220),echo(500),echo(500),echo(500)};
   assert(!wallDistance(400)); stopped();
   resetTest(); echoes={0}; assert(!middleMarker()); assert(movingMs==0);
-  resetTest(); failingWritePin=25; drive(100,100);
-  assert(aborted && !motorAttached[0]); stopped();
+  resetTest(); failingWritePin=16; drive(100,100);
+  assert(aborted && !motorPwmAttached[0]); stopped();
   resetTest(); assert(!servoAngle(5,90)); stopped();
   resetTest(); assert(!servoAngle(0,181)); stopped();
   resetTest(); aborted=true; assert(!servoAngle(0,90));
