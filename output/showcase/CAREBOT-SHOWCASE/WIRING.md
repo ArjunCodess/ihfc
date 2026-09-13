@@ -9,7 +9,7 @@ This pin map is for a DOIT ESP32 DEVKIT V1 and L298N. Use the GPIO numbers print
 | 27 | L298N IN3 |
 | 14 | L298N IN4 |
 | 33 | L298N ENA, remove its jumper |
-| 5 | L298N ENB, remove its jumper |
+| 17 | L298N ENB, remove its jumper |
 | 23 | Ultrasonic TRIG |
 | 34 | Ultrasonic ECHO through the divider below |
 | 35 | Left rear IR sensor digital output, at a compatible logic voltage |
@@ -25,7 +25,7 @@ This pin map is for a DOIT ESP32 DEVKIT V1 and L298N. Use the GPIO numbers print
 
 - OUT1/OUT2 connect to the left motor. OUT3/OUT4 connect to the right motor.
 - Connect battery positive to the L298N 12 V motor-supply terminal. Connect battery negative to L298N GND.
-- Remove the ENA and ENB jumpers. GPIO33 and GPIO5 supply PWM to those pins.
+- Remove the ENA and ENB jumpers. GPIO33 and GPIO17 supply PWM to those pins.
 - Never connect 12 V to the module's 5 V terminal or directly to the ESP32. Follow the exact module's instructions for its 5 V regulator jumper.
 - Confirm that the L298N module can handle each motor's startup and stall current.
 - Supply all five servos from a separate suitable regulated rail. The regulator must handle their combined demands; its current rating cannot be finalized until the servo models and loads are known.

@@ -25,14 +25,14 @@ The complete kit-and-beam route is enabled. `BEAM_DROP_WALL_MM = 220` is an exam
 | --- | --- |
 | L298N IN1 / IN2, left motor direction | 25 / 26 |
 | L298N IN3 / IN4, right motor direction | 27 / 14 |
-| L298N ENA / ENB, motor PWM | 33 / 5 |
+| L298N ENA / ENB, motor PWM | 33 / 17 |
 | Ultrasonic TRIG / ECHO | 23 / 34 |
 | Left / right rear IR digital output | 35 / 16 |
 | Bin A / middle bin / bin B servo signal | 18 / 19 / 21 |
 | Right / front beam gripper servo signal | 22 / 13 |
 | Start button to GND | 32 |
 
-Connect OUT1/OUT2 to the left motor and OUT3/OUT4 to the right motor. Remove the ENA and ENB jumpers, then connect ENA to GPIO33 and ENB to GPIO5 for PWM speed control. Connect the 12 V motor supply to the L298N motor-supply terminal and join the supply, L298N and ESP32 grounds. Never connect 12 V to the module's 5 V terminal or directly to the ESP32. Follow the exact module's instructions for its 5 V regulator jumper.
+Connect OUT1/OUT2 to the left motor and OUT3/OUT4 to the right motor. Remove the ENA and ENB jumpers, then connect ENA to GPIO33 and ENB to GPIO17 for PWM speed control. Connect the 12 V motor supply to the L298N motor-supply terminal and join the supply, L298N and ESP32 grounds. Never connect 12 V to the module's 5 V terminal or directly to the ESP32. Follow the exact module's instructions for its 5 V regulator jumper.
 
 Check that the L298N module's continuous-current and startup/stall-current capability matches the motors. The motors are rated 12 V and 500 RPM, but their stall current still needs measurement or a trustworthy datasheet. The L298N also drops some voltage, so the motors will receive less than the battery voltage while running.
 
