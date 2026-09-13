@@ -45,7 +45,7 @@ inline void pinMode(int,int) {}
 inline void digitalWrite(int pin,int level) {levels[pin]=level;}
 inline int digitalRead(int pin) {
   if(readHook) return readHook(pin);
-  if(pin==35) return lineMode && tick>=200 ? LOW : HIGH;
+  if(pin==35 || pin==16) return lineMode && tick>=200 ? LOW : HIGH;
   return HIGH;
 }
 inline uint32_t pulseIn(int,int,uint32_t timeout) {

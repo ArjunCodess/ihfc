@@ -7,7 +7,7 @@ The sketch uses a DOIT ESP32 DEVKIT V1, an L298N module and two dual-shaft 12 V,
 ## What it does
 
 1. Start at the top right facing left. Drive to the left wall, stop with clearance at the top left, turn left to face down, and open bin A containing two kits.
-2. Drive down the left side until the rear IR detects the configured transverse black marker. Correct the outlet position into the left-middle delivery area, then open the middle bin containing six kits.
+2. Drive down the left side until both rear IR sensors detect the configured transverse black marker. Correct the outlet position into the left-middle delivery area, then open the middle bin containing six kits.
 3. Continue down to the bottom wall and open bin B containing two kits at the bottom left.
 4. Turn left to face right. If necessary, shift up to align the right beam with the top boundary of quarantine, then continue right toward the right wall beside the bottom-right beam area.
 5. Stop at `BEAM_DROP_WALL_MM` from the right wall and command both beam grippers open, letting both beams drop from the same robot position.
@@ -27,7 +27,7 @@ The complete kit-and-beam route is enabled. `BEAM_DROP_WALL_MM = 220` is an exam
 | L298N IN3 / IN4, right motor direction | 27 / 14 |
 | L298N ENA / ENB, motor PWM | 33 / 5 |
 | Ultrasonic TRIG / ECHO | 23 / 34 |
-| Rear IR digital output | 35 |
+| Left / right rear IR digital output | 35 / 16 |
 | Bin A / middle bin / bin B servo signal | 18 / 19 / 21 |
 | Right / front beam gripper servo signal | 22 / 13 |
 | Start button to GND | 32 |
@@ -36,17 +36,17 @@ Connect OUT1/OUT2 to the left motor and OUT3/OUT4 to the right motor. Remove the
 
 Check that the L298N module's continuous-current and startup/stall-current capability matches the motors. The motors are rated 12 V and 500 RPM, but their stall current still needs measurement or a trustworthy datasheet. The L298N also drops some voltage, so the motors will receive less than the battery voltage while running.
 
-Use a separate regulated servo supply sized for all five servos, and join its ground to the ESP32 and motor-driver grounds. Do not power the servos from ESP32 3.3 V. For a 5 V HC-SR04, use a divider on ECHO: ECHO -> 10 kΩ -> GPIO34 -> 15 kΩ -> GND, giving about 3 V. GPIO35 also needs a 3.3 V-compatible IR output; it has no internal pull-up. If the module has an open-collector output, provide an external pull-up to 3.3 V. Keep both L298N enable jumpers removed so the ESP32 controls when the motors run.
+Use a separate regulated servo supply sized for all five servos, and join its ground to the ESP32 and motor-driver grounds. Do not power the servos from ESP32 3.3 V. For a 5 V HC-SR04, use a divider on ECHO: ECHO -> 10 kΩ -> GPIO34 -> 15 kΩ -> GND, giving about 3 V. Both IR outputs must stay within the ESP32's 3.3 V input limit. GPIO35 has no internal pull-up. If either module has an open-collector output, provide an external pull-up to 3.3 V. Keep both L298N enable jumpers removed so the ESP32 controls when the motors run.
 
 ## Serial logger and startup check
 
 Open Serial Monitor at **115200 baud** before resetting the ESP32. Messages contain a timestamp and severity, for example `[912 ms] [INFO] Startup self-check passed.` Every reported `ERROR` stops both L298N enable outputs and prevents the mission from continuing.
 
-At startup, the sketch checks for duplicate GPIO assignments, initializes both motor PWM channels, commands all servo channels closed, requires one valid ultrasonic reading from 20 to 4000 mm, reports the IR input state, and reports whether START is held. The mission cannot start until these checks pass. Place a solid target within the ultrasonic sensor's range before resetting the board.
+At startup, the sketch checks for duplicate GPIO assignments, initializes both motor PWM channels, commands all servo channels closed, requires one valid ultrasonic reading from 20 to 4000 mm, reports both IR input states, and reports whether START is held. The mission cannot start until these checks pass. Place a solid target within the ultrasonic sensor's range before resetting the board.
 
 The L298N has no feedback connection, so the ESP32 cannot confirm motor rotation, motor current, or whether driver power is present. Standard positional servos also provide no position feedback. The logger reports these limits as `WARN` messages. Test motor direction with the chassis raised and confirm servo movement visually.
 
-The front ultrasonic must see past or below the loaded front beam. If it sees the beam itself, the wall route cannot work. The rear IR must point down at the floor. Its job is to detect crossing markers; one binary sensor does not continuously correct steering or recover position after a bad turn.
+The front ultrasonic must see past or below the loaded front beam. If it sees the beam itself, the wall route cannot work. Mount both rear IR sensors side by side and point them down at the floor. The marker counts only when both sensors report black for `LINE_STABLE_MS`. The pair confirms crossings but does not continuously correct steering or recover position after a bad turn.
 
 ## Beam placement and the photograph
 
@@ -64,7 +64,7 @@ Start with the wheels raised and empty mechanisms. On boot, all five servos move
 2. Measure `TURN_LEFT_MS` and `TURN_RIGHT_MS` for actual 90-degree turns with the full load. The example 580 ms is not a measured turn for your robot.
 3. Adjust `CLOSED_DEG`, `OPEN_DEG`, pulse limits and `RELEASE_MS` with empty flaps first, then the actual 2/6/2 kit loads. The flap stays open after release; reset it only before reloading.
 4. Set wall clearances from the ultrasonic face, accounting for the front beam's overhang and stopping distance. Tune first and final kit outlet corrections to land inside their areas.
-5. Check `BLACK_LEVEL` and `MIDDLE_MARKER_NUMBER`. The sensor must see clear floor before the marker; a continuous longitudinal line does not count as a crossing. The sensor samples about every 2 ms except during an ultrasonic reading, which can block for 25 ms. Use a crossing speed and marker width that leave time for the 20 ms debounce.
+5. Check `BLACK_LEVEL` and `MIDDLE_MARKER_NUMBER`. Both sensors must see clear floor before the marker and then see black together; a continuous longitudinal line under only one sensor does not count. The sensors sample about every 2 ms except during an ultrasonic reading, which can block for 25 ms. Use a crossing speed and marker width that leave time for the 20 ms debounce.
 6. Set `MIDDLE_OUTLET_CORRECTION_MM`. If the outlet is 80 mm ahead of the rear sensor and should drop on the line, begin with approximately -80 mm and adjust for coasting. Zero means the outlet's ahead-of-line position is already the desired drop point. Reverse corrections need a clear path because the IR is not an obstacle detector.
 7. Measure the beam lane and the single final wall clearance. Enter `BEAM_LANE_SHIFT_MM` and `BEAM_DROP_WALL_MM`, and confirm both beams fall clear when the robot stays still.
 
@@ -85,11 +85,11 @@ The Amazon listing and Thingiverse model could not be read well enough to verify
 
 For the documented 60 × 20 mm beam cross-section, jaws gripping across the narrow faces need to open beyond 20 mm with clearance. Grip near the beam's lengthwise centre and use broad padded contacts to resist rotation. A retaining lip or shaped jaw can carry weight without relying only on friction, but it must withdraw completely when opened so the beam can fall free. Test one mechanism with the actual beam, through turns and release, before duplicating it.
 
-Current electronics: one DOIT ESP32 DEVKIT V1, one L298N module, two dual-shaft 12 V, 500 RPM DC geared motors, five servos, one front ultrasonic sensor, one rear downward IR sensor, and one start button. Add battery and suitable regulated supplies, wiring and a main power switch. No separate stop pushbutton is used.
+Current electronics: one DOIT ESP32 DEVKIT V1, one L298N module, two dual-shaft 12 V, 500 RPM DC geared motors, five servos, one front ultrasonic sensor, two rear downward IR sensors, and one start button. Add battery and suitable regulated supplies, wiring and a main power switch. No separate stop pushbutton is used.
 
 ## Remaining build items
 
-Keep five positional servos total, three flap mechanisms, two beam gripper mechanisms, one DOIT ESP32 DEVKIT V1, one front ultrasonic sensor, one rear IR sensor and one start button. Add two wheels matching the motor shafts, one caster, two motor mounts and the chassis. The second shaft on each motor does not require a second motor driver or an additional drive wheel.
+Keep five positional servos total, three flap mechanisms, two beam gripper mechanisms, one DOIT ESP32 DEVKIT V1, one front ultrasonic sensor, two rear IR sensors and one start button. Add two wheels matching the motor shafts, one caster, two motor mounts and the chassis. The second shaft on each motor does not require a second motor driver or an additional drive wheel.
 
 The remaining power parts are a motor-compatible battery pack and matching charger, regulated power for the ESP32 and five servos, a main power switch, and suitable connectors and wiring. Final regulator current depends on the servo models and loads. Include the ultrasonic echo divider and common ground described above. Do not power the servos through the ESP32 board.
 

@@ -106,17 +106,28 @@ int main() {
 
   resetTest();
   readHook=[](int pin) {
-    return pin==IR_PIN && (tick<140 || tick>=300) ? LOW : HIGH;
+    bool ir = pin==IR_PINS[0] || pin==IR_PINS[1];
+    return ir && (tick<140 || tick>=300) ? LOW : HIGH;
   };
   assert(middleMarker()); assert(tick>=320); stopped();
   resetTest();
   readHook=[](int pin) {
-    return pin==IR_PIN && ((tick>=120 && tick<130) || tick>=300) ? LOW : HIGH;
+    bool ir = pin==IR_PINS[0] || pin==IR_PINS[1];
+    return ir && ((tick>=120 && tick<130) || tick>=300) ? LOW : HIGH;
   };
   assert(middleMarker()); assert(tick>=320); stopped(); // ignore short black noise
   resetTest();
-  readHook=[](int pin){return pin==IR_PIN ? LOW : HIGH;};
+  readHook=[](int pin){
+    return (pin==IR_PINS[0] || pin==IR_PINS[1]) ? LOW : HIGH;
+  };
   assert(!middleMarker()); assert(tick>=LEG_TIMEOUT_MS); stopped();
+  resetTest();
+  readHook=[](int pin){
+    if(pin==IR_PINS[0] && tick>=200) return LOW;
+    if(pin==IR_PINS[1] && tick>=400) return LOW;
+    return HIGH;
+  };
+  assert(middleMarker()); assert(tick>=420); stopped(); // both sensors required
   resetTest();
   timeHook=[](){if(tick>=100 && Serial.input.empty()) Serial.input.push_back('x');};
   assert(!turn90(true)); assert(movingMs<=102); stopped();
@@ -147,7 +158,8 @@ int main() {
     }
   };
   readHook=[&](int pin){
-    return pin==IR_PIN && phase==2 && tick-markerStart>=150 ? LOW : HIGH;
+    bool ir = pin==IR_PINS[0] || pin==IR_PINS[1];
+    return ir && phase==2 && tick-markerStart>=150 ? LOW : HIGH;
   };
   Serial.input.push_back('s'); loop();
   assert(attempted);

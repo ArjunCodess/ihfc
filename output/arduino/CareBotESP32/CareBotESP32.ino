@@ -16,7 +16,8 @@
 // Remove the ENA and ENB jumpers so the ESP32 can control speed with PWM.
 constexpr uint8_t MOTOR_DIRECTION_PINS[] = {25, 26, 27, 14}; // IN1..IN4
 constexpr uint8_t MOTOR_ENABLE_PINS[] = {33, 5}; // ENA, ENB
-constexpr uint8_t TRIG_PIN = 23, ECHO_PIN = 34, IR_PIN = 35;
+constexpr uint8_t TRIG_PIN = 23, ECHO_PIN = 34;
+constexpr uint8_t IR_PINS[] = {35, 16}; // left and right rear sensors
 constexpr uint8_t START_PIN = 32; // one start button to GND; no stop button
 constexpr uint8_t SERVO_PINS[] = {18, 19, 21, 22, 13};
 constexpr float MOTOR_RATED_VOLTAGE = 12.0f;
@@ -200,7 +201,8 @@ bool validatePinAssignments() {
     MOTOR_DIRECTION_PINS[0], MOTOR_DIRECTION_PINS[1],
     MOTOR_DIRECTION_PINS[2], MOTOR_DIRECTION_PINS[3],
     MOTOR_ENABLE_PINS[0], MOTOR_ENABLE_PINS[1], TRIG_PIN, ECHO_PIN,
-    IR_PIN, START_PIN, SERVO_PINS[0], SERVO_PINS[1], SERVO_PINS[2],
+    IR_PINS[0], IR_PINS[1], START_PIN,
+    SERVO_PINS[0], SERVO_PINS[1], SERVO_PINS[2],
     SERVO_PINS[3], SERVO_PINS[4]
   };
   constexpr unsigned pinCount = sizeof(pins) / sizeof(pins[0]);
@@ -218,8 +220,10 @@ bool startupSelfCheck() {
   if (!isfinite(distance))
     return fail("Ultrasonic self-check failed: no valid echo from 20 to 4000 mm.");
   logValue("INFO", "Ultrasonic distance: ", distance, "mm");
-  logPrefix("INFO"); Serial.print("IR input: ");
-  Serial.println(digitalRead(IR_PIN) == BLACK_LEVEL ? "BLACK" : "CLEAR");
+  for (unsigned i = 0; i < 2; ++i) {
+    logPrefix("INFO"); Serial.print(i == 0 ? "Left IR: " : "Right IR: ");
+    Serial.println(digitalRead(IR_PINS[i]) == BLACK_LEVEL ? "BLACK" : "CLEAR");
+  }
   if (digitalRead(START_PIN) == LOW)
     logLine("WARN", "START is held. Release it before trying to start.");
   else
@@ -329,6 +333,11 @@ bool turn90(bool left) {
   return settle();
 }
 
+bool bothIrSensorsBlack() {
+  return digitalRead(IR_PINS[0]) == BLACK_LEVEL &&
+         digitalRead(IR_PINS[1]) == BLACK_LEVEL;
+}
+
 bool middleMarker() {
   stopMotors();
   float initial = rangeMm();
@@ -336,7 +345,7 @@ bool middleMarker() {
   if (initial <= LAST_KIT_WALL_STOP_MM) return fail("Wall before middle marker.");
   logLine("INFO", "Left middle: seek entry marker for six-kit delivery.");
   uint32_t start = millis(), changeMs = start;
-  bool raw = digitalRead(IR_PIN) == BLACK_LEVEL, stable = raw;
+  bool raw = bothIrSensorsBlack(), stable = raw;
   bool armed = false;
   unsigned count = 0;
   while (millis() - start < LEG_TIMEOUT_MS) {
@@ -346,7 +355,7 @@ bool middleMarker() {
       if (!isfinite(distance)) return fail("No echo while seeking line.");
       if (distance <= LAST_KIT_WALL_STOP_MM) return fail("Wall before middle marker.");
     }
-    bool now = digitalRead(IR_PIN) == BLACK_LEVEL;
+    bool now = bothIrSensorsBlack();
     if (now != raw) { raw = now; changeMs = millis(); }
     if (millis() - changeMs >= LINE_STABLE_MS) {
       if (!raw) armed = true; // must see clear floor before counting black
@@ -427,7 +436,8 @@ void setup() {
     pinMode(pin, OUTPUT); digitalWrite(pin, LOW);
   }
   pinMode(TRIG_PIN, OUTPUT); digitalWrite(TRIG_PIN, LOW);
-  pinMode(ECHO_PIN, INPUT); pinMode(IR_PIN, INPUT);
+  pinMode(ECHO_PIN, INPUT);
+  for (uint8_t pin : IR_PINS) pinMode(pin, INPUT);
   pinMode(START_PIN, INPUT_PULLUP);
   if (!validatePinAssignments()) return;
   // ENA/ENB use channels 0 and 1; servos use 8..12 on the other group.

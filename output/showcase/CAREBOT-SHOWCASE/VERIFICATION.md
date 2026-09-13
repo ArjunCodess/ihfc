@@ -26,7 +26,7 @@ g++ -std=c++17 -Wall -Wextra -Werror -I tests tests/test.cpp -o carebot-tests
 
 Coverage includes both motor directions, motor-control failure, forward and reverse wall targets, missing echoes, wall overshoot, timed movement duration, invalid parameters, stop during movement, initially-black and noisy markers, marker timeouts, start debounce, repeated releases, the complete route, and stationary beam release with all delivered servos left open.
 
-The startup tests cover a successful self-check and refusal to arm when the ultrasonic sensor returns no echo. All faults use the same ERROR logger and stop both motor-enable outputs.
+The startup tests cover a successful self-check and refusal to arm when the ultrasonic sensor returns no echo. Marker tests require both rear IR sensors to report black and reject a reading from only one sensor. All faults use the same ERROR logger and stop both motor-enable outputs.
 
 The packaged tests were re-run after making the paths portable. Their output is saved in `evidence/host-tests.log`.
 

@@ -35,7 +35,7 @@
 
 CareBot carries ten preloaded medical kits and two containment beams. Three gravity bins hold groups of 2, 6, and 2 kits. A servo opens each flap once and leaves it open. Two more servo grippers hold one beam across the front of the robot and one along its right side. At the final stop, both grippers open and the robot remains stopped.
 
-The robot starts in the top-right area facing left. It uses a front ultrasonic sensor to stop near walls and a rear downward-facing IR sensor to detect the black crossing near the middle delivery area. Turns and short corrections use calibrated motor timing.
+The robot starts in the top-right area facing left. It uses a front ultrasonic sensor to stop near walls and two rear downward-facing IR sensors to confirm the black crossing near the middle delivery area. Turns and short corrections use calibrated motor timing.
 
 \section*{Final hardware}
 
@@ -48,7 +48,7 @@ DOIT ESP32 DEVKIT V1 & 1 & Main controller \\
 L298N dual motor-driver module & 1 & Controls both drive motors \\
 Dual-shaft 12 V, 500 RPM DC geared motor & 2 & Left and right drive \\
 Front ultrasonic sensor & 1 & Wall-distance measurement \\
-Rear digital IR reflectance sensor & 1 & Black-crossing detection \\
+Rear digital IR reflectance sensor & 2 & Paired black-crossing detection \\
 Positional servo & 5 & Three bin flaps and two beam grippers \\
 Start pushbutton & 1 & Starts one mission after reset \\
 Drive wheels and caster & 2 + 1 & Supports differential drive \\
@@ -68,14 +68,14 @@ GPIO & Connection \\
 27, 14 & L298N IN3, IN4 for the right motor \\
 33, 5 & L298N ENA, ENB motor PWM \\
 23, 34 & Ultrasonic TRIG, ECHO \\
-35 & Rear IR digital output \\
+35, 16 & Left and right rear IR digital outputs \\
 18, 19, 21 & Two-kit bin, six-kit bin, two-kit bin servos \\
 22, 13 & Right-side and front beam-gripper servos \\
 32 & Start button to ground, using the internal pull-up \\
 \bottomrule
 \end{tabular}
 
-GPIO34 and GPIO35 are input-only pins, which suits the two sensor inputs. A 5 V ultrasonic ECHO signal needs a divider before GPIO34. The planned divider is 10~k$\Omega$ from ECHO to GPIO34 and 15~k$\Omega$ from GPIO34 to ground. The IR output must also remain within the ESP32's 3.3 V input limit. Remove the L298N ENA and ENB jumpers so GPIO33 and GPIO5 can control speed.
+GPIO34 and GPIO35 are input-only pins, which suits the ultrasonic ECHO and left IR inputs. A 5 V ultrasonic ECHO signal needs a divider before GPIO34. The planned divider is 10~k$\Omega$ from ECHO to GPIO34 and 15~k$\Omega$ from GPIO34 to ground. Both IR outputs must remain within the ESP32's 3.3 V input limit. Remove the L298N ENA and ENB jumpers so GPIO33 and GPIO5 can control speed.
 
 \newpage
 \section*{Mission sequence}
@@ -83,7 +83,7 @@ GPIO34 and GPIO35 are input-only pins, which suits the two sensor inputs. A 5 V 
 \begin{enumerate}
   \item Start at the top right facing left. Drive toward the left wall and stop at the calibrated ultrasonic clearance.
   \item Turn left to face down. Open the first flap and drop two kits near the top-left destination.
-  \item Drive down the left side. Detect the first valid transverse black crossing with the rear IR sensor, apply the calibrated outlet correction, and open the middle flap to drop six kits.
+  \item Drive down the left side. Confirm the first valid transverse black crossing with both rear IR sensors, apply the calibrated outlet correction, and open the middle flap to drop six kits.
   \item Continue toward the bottom wall. Stop at the calibrated clearance and open the third flap to drop the last two kits.
   \item Turn left to face right. Apply the optional lane correction, then drive toward the right wall beside the beam area.
   \item Stop at the single calibrated beam-drop position. Open both beam grippers, wait for the beams to fall, and remain stopped.
@@ -95,7 +95,7 @@ The code releases a complete preloaded group; it does not count individual kits.
 
 The final sketch is \texttt{output/arduino/CareBotESP32/CareBotESP32.ino}. Select \textbf{DOIT ESP32 DEVKIT V1} in Arduino IDE and use the Espressif Arduino-ESP32 3.x board package. No separate servo library is required.
 
-On boot, the program commands all five servos closed and runs a startup self-check. It verifies unique GPIO assignments, PWM setup, servo commands, one valid ultrasonic echo, the IR input state, and the START input state. A missing ultrasonic echo blocks the mission. The start button must first be released and then held for at least 40 ms. One press starts one mission; reset is required before another run. Sending \texttt{x} through Serial Monitor at 115200 baud stops the motors while USB remains connected. The main switch provides the physical power stop.
+On boot, the program commands all five servos closed and runs a startup self-check. It verifies unique GPIO assignments, PWM setup, servo commands, one valid ultrasonic echo, both IR input states, and the START input state. A missing ultrasonic echo blocks the mission. The start button must first be released and then held for at least 40 ms. One press starts one mission; reset is required before another run. Sending \texttt{x} through Serial Monitor at 115200 baud stops the motors while USB remains connected. The main switch provides the physical power stop.
 
 Serial messages contain a millisecond timestamp and an \texttt{INFO}, \texttt{WARN}, or \texttt{ERROR} severity. Every reported error disables both L298N enable outputs. The program warns that it cannot verify motor rotation, driver current, or servo position because those devices have no feedback connections.
 
@@ -105,7 +105,7 @@ The program stops on missing ultrasonic echoes, wall-target overshoot, missing m
 
 Before a field run, measure and update motor direction, loaded forward and reverse speed, left-turn duration, servo closed and open angles, wall clearances, the middle outlet correction, beam-lane shift, and the final beam-drop wall distance. The supplied values are examples. A 500 RPM motor label does not determine travel speed without the wheel diameter and loaded motor speed.
 
-The front ultrasonic sensor must see past or below the carried front beam. The rear IR sensor detects a crossing but cannot continuously steer along a line. Reverse movement has no rear obstacle sensor, and turns have no side-clearance sensor, so the loaded route must be checked physically.
+The front ultrasonic sensor must see past or below the carried front beam. Both rear IR sensors must see black together to confirm a crossing, but they do not continuously steer along a line. Reverse movement has no rear obstacle sensor, and turns have no side-clearance sensor, so the loaded route must be checked physically.
 
 \section*{Verification status}
 

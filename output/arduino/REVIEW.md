@@ -2,7 +2,7 @@ Latest behavior: each delivery servo opens and stays open. Both beam grippers op
 
 # Code review and verification
 
-Reviewed the complete CareBot sketch for the DOIT ESP32 DEVKIT V1, L298N, two 12 V, 500 RPM geared motors, three bin servos, two gripper servos, front ultrasonic sensor, rear IR sensor and one start button.
+Reviewed the complete CareBot sketch for the DOIT ESP32 DEVKIT V1, L298N, two 12 V, 500 RPM geared motors, three bin servos, two gripper servos, front ultrasonic sensor, two rear IR sensors and one start button.
 
 ## Errors fixed
 
@@ -29,7 +29,7 @@ This verifies compilation and software behavior, not navigation accuracy on a re
 
 - The L298N module's current rating must exceed the measured motor demand, including startup and stall. Its bridge voltage drop also reduces the voltage reaching the motors.
 - Speed, turn duration, servo angles, outlet corrections, stopping clearance and beam drop clearance still require measurements. The source retains example motion values and an example final beam wall clearance.
-- One binary rear IR sensor detects crossing markers but cannot continuously correct heading. The first transverse separator is the middle area's entrance, not its centre. Sensor polling can miss a narrow marker at excessive speed, especially during a blocking ultrasonic reading.
+- Two binary rear IR sensors confirm crossing markers together but do not continuously correct heading. The first transverse separator is the middle area's entrance, not its centre. Sensor polling can miss a narrow marker at excessive speed, especially during a blocking ultrasonic reading.
 - The ultrasonic sensor must see the intended wall, not a carried beam, released load or another obstacle. Its reading can block for up to 25 ms; Serial stop is serviced between such readings.
 - Reverse motion has no rear obstacle measurement. Turning has no side-clearance measurement. Both require the loaded robot's path to be physically clear.
 - Each flap release assumes its preloaded 2/6/2 group falls out. There is no sensor to verify an empty bin or confirm that a released beam stands upright.

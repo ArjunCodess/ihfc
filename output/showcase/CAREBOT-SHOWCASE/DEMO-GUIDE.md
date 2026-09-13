@@ -6,7 +6,7 @@
 - Complete the measured entries in `CALIBRATION.md` and enter them in the sketch. Upload that calibrated source and keep a copy of it with your records.
 - Check the motors' voltage/current requirements, power wiring, wheel directions and loaded turning clearance.
 - Test each flap with its actual load and each gripper with its beam. Both beams must fall clear while the robot remains still.
-- Check that the front beam does not obstruct ultrasonic readings and that the rear IR distinguishes black from the floor.
+- Check that the front beam does not obstruct ultrasonic readings and that both rear IR sensors distinguish black from the floor.
 - Run the full route on the physical field. Record successful and failed attempts; the supplied test logs are software tests, not evidence of a physical run.
 
 ## Live run
@@ -23,7 +23,7 @@ For an unexpected movement, use the main power switch. If Serial Monitor is conn
 
 ## One-minute explanation
 
-“This is CareBot, a robot for delivering preloaded medical kits on a fixed field. We use an ESP32 to control two geared drive motors and five servos. A front ultrasonic sensor measures the distance to the walls, and a downward-facing IR sensor at the rear detects a black crossing.
+“This is CareBot, a robot for delivering preloaded medical kits on a fixed field. We use an ESP32 to control two geared drive motors and five servos. A front ultrasonic sensor measures the distance to the walls, and two downward-facing IR sensors at the rear confirm a black crossing.
 
 “We start at the top right and travel to the top left. The robot turns down and opens the first bin to drop two kits. At the middle delivery area it drops six, and at the bottom left it drops the last two. It then turns toward the bottom right, stops at the configured position, and opens both beam grippers.
 
@@ -35,7 +35,7 @@ If you have completed physical testing, replace the last sentence with your reco
 
 **How does it know where it is?** It does not maintain an absolute position. It follows the known route using wall stops, marker detection and calibrated timed movements.
 
-**Does it follow the black line continuously?** No. One rear binary IR sensor detects a crossing marker; it does not steer continuously along the line.
+**Does it follow the black line continuously?** No. Two rear binary IR sensors confirm a crossing marker together; they do not steer continuously along the line.
 
 **How does it count six kits?** It does not count them electronically. The middle bin is loaded with six, and one flap releases the group.
 
