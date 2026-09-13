@@ -2,7 +2,7 @@
 
 Open `CareBotESP32/CareBotESP32.ino` in Arduino IDE. This implements the new route in your message, including the photographed chassis with a transverse front beam and a lengthwise right beam. The old document's Uno, camera and 45-degree branch are not used.
 
-The sketch uses a DOIT ESP32 DEVKIT V1 and your selected DRV8833 motor driver, with two existing dual-shaft 300 RPM DC geared motors. Their rated voltage and stall current are still unknown, so driver suitability and battery selection need those specifications. The 300 RPM label alone does not determine loaded travel speed or torque. There is one start button and no physical stop button; Serial x remains available while connected. Select **DOIT ESP32 DEVKIT V1**, install **esp32 by Espressif Systems 3.x**, and use Serial Monitor at **115200 baud**. No extra servo library is needed.
+The sketch uses a DOIT ESP32 DEVKIT V1 with two dual-shaft 12 V, 500 RPM DC geared motors. The current DRV8833 design cannot run from a 12 V motor supply because its recommended VM range ends at 10.8 V. Use a motor driver rated for 12 V and for each motor's measured stall current, or power the DRV8833 at no more than 10.8 V and accept reduced motor speed. Keep `MOTOR_POWER_STAGE_CONFIRMED_COMPATIBLE` false until this has been checked. There is one start button and no physical stop button; Serial x remains available while connected. Select **DOIT ESP32 DEVKIT V1**, install **esp32 by Espressif Systems 3.x**, and use Serial Monitor at **115200 baud**. No extra servo library is needed.
 
 ## What it does
 
@@ -33,7 +33,7 @@ The complete kit-and-beam route is enabled. `BEAM_DROP_WALL_MM = 220` is an exam
 
 Connect AOUT1/AOUT2 to the left motor and BOUT1/BOUT2 to the right motor. Connect VM to a supply matched to the motors and within the DRV8833 operating range of 2.7–10.8 V. Connect nSLEEP to 3.3 V if the breakout does not already hold it high. PWM goes directly to the four input pins; GPIO16 and GPIO17 are unused. There are no L298N enable or regulator jumpers in this wiring. Add input pull-downs if the module does not already provide them, so reset leaves both motor bridges off.
 
-Choose a documented breakout whose continuous and startup/stall-current capability matches the motor pair. DRV8833 current ratings depend on package and board cooling; a generic 2 A label is not a continuous rating for every board. The existing motors are selected for reuse, but their electrical compatibility has not been established from the 300 RPM description.
+Choose a documented breakout whose voltage, continuous-current and startup/stall-current capability matches the motor pair. DRV8833 current ratings depend on package and board cooling; a generic 2 A label is not a continuous rating for every board. The motors are rated 12 V and 500 RPM, but their stall current still needs measurement or a trustworthy datasheet.
 
 Use a separate regulated servo supply sized for all five servos, and join its ground to the ESP32 and motor-driver grounds. Do not power the servos from ESP32 3.3 V. For a 5 V HC-SR04, use a divider on ECHO: ECHO -> 10 kΩ -> GPIO34 -> 15 kΩ -> GND, giving about 3 V. GPIO35 also needs a 3.3 V-compatible IR output; it has no internal pull-up. If the module has an open-collector output, provide an external pull-up to 3.3 V. The motor-input pull-downs described above keep the motors off during reset.
 
@@ -76,7 +76,7 @@ The Amazon listing and Thingiverse model could not be read well enough to verify
 
 For the documented 60 × 20 mm beam cross-section, jaws gripping across the narrow faces need to open beyond 20 mm with clearance. Grip near the beam's lengthwise centre and use broad padded contacts to resist rotation. A retaining lip or shaped jaw can carry weight without relying only on friction, but it must withdraw completely when opened so the beam can fall free. Test one mechanism with the actual beam, through turns and release, before duplicating it.
 
-Current electronics: one DOIT ESP32 DEVKIT V1, one DRV8833 module, two existing dual-shaft 300 RPM DC geared motors, five servos, one front ultrasonic sensor, one rear downward IR sensor, and one start button. Add battery and suitable regulated supplies, wiring and a main power switch. No separate stop pushbutton is used.
+Current electronics: one DOIT ESP32 DEVKIT V1, one DRV8833 module, two dual-shaft 12 V, 500 RPM DC geared motors, five servos, one front ultrasonic sensor, one rear downward IR sensor, and one start button. The DRV8833 must be replaced for 12 V operation or supplied with no more than 10.8 V. Add battery and suitable regulated supplies, wiring and a main power switch. No separate stop pushbutton is used.
 
 ## Remaining build items
 
@@ -84,6 +84,6 @@ Keep five positional servos total, three flap mechanisms, two beam gripper mecha
 
 The remaining power parts are a motor-compatible battery pack and matching charger, regulated power for the ESP32 and five servos, a main power switch, and suitable connectors and wiring. Final regulator current depends on the servo models and loads. Include the ultrasonic echo divider and common ground described above. Do not power the servos through the ESP32 board.
 
-Measure wheel diameter and loaded speed before setting timed movements. The 300 RPM specification is not a command to drive at full speed: use PWM for slower approach and marker crossings, and check that the loaded robot still starts and turns reliably. All existing speed and turn-time constants are uncalibrated examples.
+Measure wheel diameter and loaded speed before setting timed movements. The 500 RPM rating is not a command to drive at full speed: use PWM for slower approach and marker crossings, and check that the loaded robot still starts and turns reliably. All existing speed and turn-time constants are uncalibrated examples.
 
 

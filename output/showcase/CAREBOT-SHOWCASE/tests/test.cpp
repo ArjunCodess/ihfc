@@ -28,6 +28,10 @@ void stopped() {
 }
 int main() {
   resetTest();
+  setup();
+  assert(aborted); // 12 V motors must not arm the 10.8 V-max DRV8833 by default
+  stopped();
+  resetTest();
   drive(145,145);
   assert(duties[25]==145 && duties[26]==0);
   assert(duties[27]==0 && duties[14]==145); // right motor inverted

@@ -1,7 +1,9 @@
 /* CareBot: three preloaded flap bins (2, 6, 2) and two beam grippers.
    Target: DOIT ESP32 DEVKIT V1, Arduino-ESP32 3.x, DRV8833.
-   Drive pair: existing dual-shaft 300 RPM DC geared motors.
-   Motor voltage/current and loaded travel speed still require verification.
+   Drive pair: dual-shaft 12 V, 500 RPM DC geared motors.
+   IMPORTANT: DRV8833 VM must stay at or below 10.8 V. Do not connect 12 V
+   directly to VM. Use a suitable 12 V motor driver to run at the rated voltage.
+   Motor stall current and loaded travel speed still require measurement.
    No servo library required. See ../README.md before wiring/loading.
    Serial: s = start once, x = stop; reset and reload for another run.
    All distances/timings below require calibration on the actual robot.
@@ -18,12 +20,20 @@ constexpr uint8_t MOTOR_PINS[] = {25, 26, 27, 14}; // AIN1, AIN2, BIN1, BIN2
 constexpr uint8_t TRIG_PIN = 23, ECHO_PIN = 34, IR_PIN = 35;
 constexpr uint8_t START_PIN = 32; // one start button to GND; no stop button
 constexpr uint8_t SERVO_PINS[] = {18, 19, 21, 22, 13};
+constexpr float MOTOR_RATED_VOLTAGE = 12.0f;
+constexpr unsigned MOTOR_RATED_RPM = 500;
+constexpr float DRV8833_MAX_VM_VOLTAGE = 10.8f;
+// Keep false until the motor supply/driver combination has been checked against
+// the motor stall current and voltage. The stock DRV8833 is not valid at 12 V.
+constexpr bool MOTOR_POWER_STAGE_CONFIRMED_COMPATIBLE = false;
 // Servo indices: small A, six-kit bin, small B, right beam, front beam.
 constexpr int CLOSED_DEG[] = {15, 15, 15, 35, 35};
 constexpr int OPEN_DEG[] = {100, 100, 100, 110, 110};
 constexpr uint32_t SERVO_MIN_US = 1000, SERVO_MAX_US = 2000;
 constexpr int BLACK_LEVEL = LOW; // change to HIGH if your module is inverted
 constexpr bool INVERT_LEFT = false, INVERT_RIGHT = true;
+// RPM is not used as wheel speed. Keep these conservative starting values and
+// calibrate them with the loaded robot. A 12 V supply requires another driver.
 constexpr int DRIVE_PWM = 145, SLOW_PWM = 100, TURN_PWM = 125;
 constexpr int LEFT_TRIM = 0, RIGHT_TRIM = 0;
 constexpr uint32_t TURN_LEFT_MS = 580, TURN_RIGHT_MS = 580;
@@ -60,6 +70,8 @@ static_assert(DRIVE_PWM > 0 && DRIVE_PWM <= 255 && SLOW_PWM > 0 &&
               "Motor PWM values must be within 1..255.");
 static_assert(DRIVE_MM_PER_SECOND > 0 && REVERSE_MM_PER_SECOND > 0,
               "Calibrated speeds must be positive.");
+static_assert(MOTOR_RATED_VOLTAGE == 12.0f && MOTOR_RATED_RPM == 500,
+              "Update the motor ratings before changing its calibration.");
 static_assert(SERVO_MIN_US > 0 && SERVO_MAX_US > SERVO_MIN_US &&
               SERVO_MAX_US < 20000, "Invalid servo pulse limits.");
 static_assert(MIDDLE_MARKER_NUMBER > 0, "Marker numbers start at one.");
@@ -335,6 +347,10 @@ bool runMission() {
 void setup() {
   Serial.begin(115200);
   for (uint8_t pin : MOTOR_PINS) { pinMode(pin, OUTPUT); digitalWrite(pin, LOW); }
+  if (!MOTOR_POWER_STAGE_CONFIRMED_COMPATIBLE) {
+    fail("Motor power stage not confirmed. DRV8833 cannot use a 12 V VM supply.");
+    return;
+  }
   pinMode(TRIG_PIN, OUTPUT); digitalWrite(TRIG_PIN, LOW);
   pinMode(ECHO_PIN, INPUT); pinMode(IR_PIN, INPUT);
   pinMode(START_PIN, INPUT_PULLUP);
@@ -355,6 +371,11 @@ void setup() {
     if (!servoAngle(i, CLOSED_DEG[i])) return;
   }
   if (!waitChecked(800)) return;
+  Serial.print("Motor: "); Serial.print(MOTOR_RATED_VOLTAGE);
+  Serial.print(" V, "); Serial.print(MOTOR_RATED_RPM);
+  Serial.print(" RPM. DRV8833 VM limit: ");
+  Serial.print(DRV8833_MAX_VM_VOLTAGE); Serial.println(" V.");
+  Serial.println("Do not apply 12 V to DRV8833 VM; use a 12 V-rated driver for 12 V operation.");
   Serial.println("Ready. Load bins 2/6/2. Press START or send s. x stops.");
 }
 

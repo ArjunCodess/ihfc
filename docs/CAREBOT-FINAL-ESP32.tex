@@ -46,7 +46,7 @@ Component & Quantity & Job \\
 \midrule
 DOIT ESP32 DEVKIT V1 & 1 & Main controller \\
 DRV8833 dual motor-driver module & 1 & Controls both drive motors \\
-Dual-shaft 300 RPM DC geared motor & 2 & Left and right drive \\
+Dual-shaft 12 V, 500 RPM DC geared motor & 2 & Left and right drive \\
 Front ultrasonic sensor & 1 & Wall-distance measurement \\
 Rear digital IR reflectance sensor & 1 & Black-crossing detection \\
 Positional servo & 5 & Three bin flaps and two beam grippers \\
@@ -56,7 +56,7 @@ Main power switch & 1 & Disconnects the battery \\
 \bottomrule
 \end{tabular}
 
-The motors' rated voltage and stall current must be checked before choosing the battery and confirming the exact DRV8833 breakout. The servo supply must be regulated and sized for five servos. Servos must not draw power through the ESP32 board. All supplies and modules share ground.
+The motors are rated for 12~V, but the DRV8833 motor-supply operating range ends at 10.8~V. The DRV8833 must not receive 12~V. Use a 12~V-capable driver sized for the motors' stall current, or power the current driver at no more than 10.8~V and accept reduced speed. The servo supply must be regulated and sized for five servos. Servos must not draw power through the ESP32 board. All supplies and modules share ground.
 
 \section*{ESP32 pin map}
 
@@ -100,7 +100,7 @@ The program stops on missing ultrasonic echoes, wall-target overshoot, missing m
 
 \section*{Values that must be measured}
 
-Before a field run, measure and update motor direction, loaded forward and reverse speed, left-turn duration, servo closed and open angles, wall clearances, the middle outlet correction, beam-lane shift, and the final beam-drop wall distance. The supplied values are examples. A 300 RPM motor label does not determine travel speed without the wheel diameter and loaded motor speed.
+Before a field run, measure and update motor direction, loaded forward and reverse speed, left-turn duration, servo closed and open angles, wall clearances, the middle outlet correction, beam-lane shift, and the final beam-drop wall distance. The supplied values are examples. A 500 RPM motor label does not determine travel speed without the wheel diameter and loaded motor speed.
 
 The front ultrasonic sensor must see past or below the carried front beam. The rear IR sensor detects a crossing but cannot continuously steer along a line. Reverse movement has no rear obstacle sensor, and turns have no side-clearance sensor, so the loaded route must be checked physically.
 

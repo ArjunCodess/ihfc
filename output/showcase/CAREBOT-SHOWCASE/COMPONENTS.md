@@ -3,8 +3,8 @@
 | Part | Quantity | Job / selection status |
 | --- | ---: | --- |
 | DOIT ESP32 DEVKIT V1 | 1 | Main controller and exact Arduino board profile used by the sketch. |
-| DRV8833 dual motor-driver module | 1 | Drives both wheels; match the module's current capability to the motors. |
-| Dual-shaft DC geared motor, 300 RPM | 2 | Existing stock; rated voltage and stall current are still to be identified. |
+| DRV8833 dual motor-driver module | 1 | Cannot use a 12 V VM supply; replace it for rated-voltage operation. |
+| Dual-shaft 12 V DC geared motor, 500 RPM | 2 | Existing stock; stall current still needs to be identified. |
 | Front ultrasonic sensor | 1 | Measures the distance to the wall. Wiring assumes an HC-SR04-type TRIG/ECHO interface. |
 | Rear IR reflectance sensor, digital output | 1 | Points downward and detects transverse black markers. Output must be ESP32-compatible. |
 | Bin flap positional servo | 3 | Opens bins carrying 2, 6 and 2 kits; exact servo models depend on flap load. |

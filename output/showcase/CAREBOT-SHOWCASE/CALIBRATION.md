@@ -4,7 +4,8 @@ The source defaults below are examples, not measurements of the assembled robot.
 
 | Setting | Packaged value | Your measured value |
 | --- | --- | --- |
-| Motor rated voltage | Unknown | __________ |
+| Motor rated voltage | 12 V | __________ |
+| Motor rated speed | 500 RPM | __________ |
 | Motor stall current at rated voltage | Unknown | __________ |
 | Battery voltage / capacity | Unselected | __________ |
 | Servo models / regulated supply rating | Unselected | __________ |
@@ -33,7 +34,7 @@ The source defaults below are examples, not measurements of the assembled robot.
 
 Positive outlet offsets move forward in the robot's current heading; negative values reverse. At the final rightward leg, a positive beam lane shift moves up in the field image, and a negative value moves down. The final beam release is at one pose, so both mounts must align their loads from that same pose.
 
-Measure travel speed at the configured PWM with the robot loaded. A nominal 300 RPM motor speed does not determine millimetres per second without wheel diameter and actual loaded speed. Tune left turns with both beams loaded and enough room for their swept area.
+Measure travel speed at the configured PWM with the robot loaded. A nominal 500 RPM motor speed does not determine millimetres per second without wheel diameter and actual loaded speed. Tune left turns with both beams loaded and enough room for their swept area.
 
 ## Physical run record
 

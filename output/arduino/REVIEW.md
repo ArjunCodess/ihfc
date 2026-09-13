@@ -2,7 +2,7 @@ Latest behavior: each delivery servo opens and stays open. Both beam grippers op
 
 # Code review and verification
 
-Reviewed the complete CareBot sketch for the DOIT ESP32 DEVKIT V1, DRV8833, two existing 300 RPM geared motors, three bin servos, two gripper servos, front ultrasonic sensor, rear IR sensor and one start button.
+Reviewed the complete CareBot sketch for the DOIT ESP32 DEVKIT V1, DRV8833, two 12 V, 500 RPM geared motors, three bin servos, two gripper servos, front ultrasonic sensor, rear IR sensor and one start button.
 
 ## Errors fixed
 
@@ -26,7 +26,7 @@ Test sources are in `tmp/carebot-code-test` under the workspace. `configured.ino
 
 This verifies compilation and software behavior, not navigation accuracy on a real field. No firmware was uploaded to a robot.
 
-- The motor voltage and stall current must match the chosen supply and DRV8833 breakout. A 300 RPM label does not establish either value.
+- The 12 V motor rating exceeds the DRV8833's 10.8 V maximum recommended VM supply. The driver must be replaced for 12 V operation or run at no more than 10.8 V. Its current rating must also exceed the measured motor demand, including startup and stall.
 - Speed, turn duration, servo angles, outlet corrections, stopping clearance and beam drop clearance still require measurements. The source retains example motion values and an example final beam wall clearance.
 - One binary rear IR sensor detects crossing markers but cannot continuously correct heading. The first transverse separator is the middle area's entrance, not its centre. Sensor polling can miss a narrow marker at excessive speed, especially during a blocking ultrasonic reading.
 - The ultrasonic sensor must see the intended wall, not a carried beam, released load or another obstacle. Its reading can block for up to 25 ms; Serial stop is serviced between such readings.

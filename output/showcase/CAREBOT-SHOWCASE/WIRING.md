@@ -21,7 +21,7 @@ This pin map is for a DOIT ESP32 DEVKIT V1 and DRV8833. Use the GPIO numbers pri
 ## Motor driver and power
 
 - AOUT1/AOUT2 connect to the left motor. BOUT1/BOUT2 connect to the right motor.
-- VM connects to the motor supply, chosen for the motor voltage and within the DRV8833's 2.7–10.8 V operating range. The specific motors' voltage and stall current remain unknown.
+- The motors are rated 12 V, but DRV8833 VM has a 2.7–10.8 V operating range. Never connect a 12 V supply to this driver's VM pin. Replace the driver for 12 V operation, or use no more than 10.8 V and accept reduced motor speed. The replacement must also handle the measured stall current.
 - Hold nSLEEP high at 3.3 V if the breakout does not already do so. Check its exact pin labels.
 - Supply all five servos from a separate suitable regulated rail. The regulator must handle their combined demands; its current rating cannot be finalized until the servo models and loads are known.
 - Power the ESP32 DevKit through its supported USB or regulated board-power input. Follow that board's requirements; do not connect a raw motor battery to its 3.3 V pin.
