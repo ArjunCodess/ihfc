@@ -16,7 +16,7 @@ The left-side separator marks entry to the middle area. A configurable offset ac
 
 | Function | What it does |
 | --- | --- |
-| `setup()` | Configures GPIO and PWM, closes the servos, then waits for the start command. |
+| `setup()` | Configures GPIO and motor PWM, initializes the PCA9685, closes the servos, then waits for the start command. |
 | `loop()` | Debounces START, accepts Serial commands, and allows one mission attempt per reset. |
 | `runMission()` | Executes the complete route in order. |
 | `rangeMm()` | Sends an ultrasonic trigger and converts the echo duration to millimetres. No echo returns an invalid reading. |
@@ -25,19 +25,20 @@ The left-side separator marks entry to the middle area. A configurable offset ac
 | `moveMm()` | Converts a small calibrated forward/reverse offset to running time. This is an estimate without encoders. |
 | `turn90()` | Runs the wheels in opposite directions for a calibrated turn duration. |
 | `drive()` / `setMotor()` | Set L298N direction inputs and ENA/ENB PWM duty. |
-| `servoAngle()` | Converts a requested position to a 50 Hz servo pulse. |
+| `initializeServoDriver()` | Detects the PCA9685 at `0x40` and configures its shared output frequency to 50 Hz. |
+| `servoAngle()` | Converts a requested angle to a pulse count and writes the assigned PCA9685 channel. |
 | `releaseLoad()` | Opens one bin or gripper once and leaves it open. The route uses it for the three bins. |
 | `releaseBeams()` | Opens both grippers at the same stationary pose. |
 | `fail()` / `checkStop()` | Stop the motors on a fault or a connected Serial `x` command. |
 | `logLine()` / `logValue()` | Write timestamped INFO, WARN and ERROR messages at 115200 baud. |
-| `startupSelfCheck()` | Check configuration, PWM setup, ultrasonic response, IR state and START before arming the mission. |
+| `startupSelfCheck()` | Check configuration, motor PWM, PCA9685 response, ultrasonic response, IR state and START before arming the mission. |
 
 ## What the five servos do
 
-The first three servos each open a complete bin; the program does not count individual kits. Loading the bins with 2, 6 and 2 sets the delivered quantities. The final two servos open the beam grippers. Their commands are issued back-to-back, so exact mechanical simultaneity is not assumed.
+All servo signals come from one PCA9685 board over ESP32 GPIO21/SDA and GPIO22/SCL. Channels 0, 1 and 2 open the three complete bins; the program does not count individual kits. Loading those bins with 2, 6 and 2 sets the delivered quantities. Channels 3 and 4 open the right and front beam grippers. Their commands are issued back-to-back, so exact mechanical simultaneity is not assumed.
 
 The code records which loads have been released and rejects a repeated release. It does not have sensors to confirm that a bin is empty or that a beam landed upright.
 
 ## Software fault handling
 
-Missing echoes, target overshoot, travel timeout, invalid settings, invalid servo commands and motor PWM failures stop the mission. The motors then stay stopped until reset. Servos remain at their last commanded positions. Serial stop is checked between operations; one ultrasonic reading can block for up to 25 ms.
+Missing echoes, a missing PCA9685, failed I2C writes, target overshoot, travel timeout, invalid settings, invalid servo commands and motor PWM failures stop the mission. The motors then stay stopped until reset. Servos remain at their last commanded positions. Serial stop is checked between operations; one ultrasonic reading can block for up to 25 ms.

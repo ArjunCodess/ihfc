@@ -2,7 +2,7 @@
 
 Open `CareBotESP32/CareBotESP32.ino` in Arduino IDE. This implements the new route in your message, including the photographed chassis with a transverse front beam and a lengthwise right beam. The old document's Uno, camera and 45-degree branch are not used.
 
-The sketch uses a DOIT ESP32 DEVKIT V1, an L298N module and two dual-shaft 12 V, 500 RPM DC geared motors. Confirm that the module can handle each motor's measured stall current. There is one start button and no physical stop button; Serial x remains available while connected. Select **DOIT ESP32 DEVKIT V1**, install **esp32 by Espressif Systems 3.x**, and use Serial Monitor at **115200 baud**. No extra servo library is needed.
+The sketch uses a DOIT ESP32 DEVKIT V1, an L298N module, a PCA9685 servo driver at I2C address `0x40`, and two dual-shaft 12 V, 500 RPM DC geared motors. Confirm that the L298N can handle each motor's measured stall current. There is one start button and no physical stop button; Serial x remains available while connected. Select **DOIT ESP32 DEVKIT V1**, install **esp32 by Espressif Systems 3.x**, and use Serial Monitor at **115200 baud**. The firmware talks to the PCA9685 through the built-in `Wire` library, so no extra servo library is needed.
 
 ## What it does
 
@@ -28,21 +28,22 @@ The complete kit-and-beam route is enabled. `BEAM_DROP_WALL_MM = 220` is an exam
 | L298N ENA / ENB, motor PWM | 33 / 17 |
 | Ultrasonic TRIG / ECHO | 23 / 34 |
 | Left / right rear IR digital output | 35 / 16 |
-| Bin A / middle bin / bin B servo signal | 18 / 19 / 21 |
-| Right / front beam gripper servo signal | 22 / 13 |
+| PCA9685 SDA / SCL | 21 / 22 |
 | Start button to GND | 32 |
 
 Connect OUT1/OUT2 to the left motor and OUT3/OUT4 to the right motor. Remove the ENA and ENB jumpers, then connect ENA to GPIO33 and ENB to GPIO17 for PWM speed control. Connect the 12 V motor supply to the L298N motor-supply terminal and join the supply, L298N and ESP32 grounds. Never connect 12 V to the module's 5 V terminal or directly to the ESP32. Follow the exact module's instructions for its 5 V regulator jumper.
 
 Check that the L298N module's continuous-current and startup/stall-current capability matches the motors. The motors are rated 12 V and 500 RPM, but their stall current still needs measurement or a trustworthy datasheet. The L298N also drops some voltage, so the motors will receive less than the battery voltage while running.
 
-Use a separate regulated servo supply sized for all five servos, and join its ground to the ESP32 and motor-driver grounds. Do not power the servos from ESP32 3.3 V. For a 5 V HC-SR04, use a divider on ECHO: ECHO -> 10 kΩ -> GPIO34 -> 15 kΩ -> GND, giving about 3 V. Both IR outputs must stay within the ESP32's 3.3 V input limit. GPIO35 has no internal pull-up. If either module has an open-collector output, provide an external pull-up to 3.3 V. Keep both L298N enable jumpers removed so the ESP32 controls when the motors run.
+Connect ESP32 GPIO21 to PCA9685 SDA, GPIO22 to SCL, ESP32 3.3 V to PCA9685 VCC, and PCA9685 OE to GND. Leave the board at its default I2C address `0x40`. Plug the five servo signal leads into PCA9685 channels 0 through 4: bin A, middle bin, bin B, right beam gripper, then front beam gripper. Connect a separate regulated servo supply, suitable for the actual servo voltage and combined current, to PCA9685 V+. Join its ground to PCA9685 GND, ESP32 GND, L298N GND and sensor grounds. Do not power the servos from ESP32 3.3 V or from the PCA9685 VCC logic pin.
+
+For a 5 V HC-SR04, use a divider on ECHO: ECHO -> 10 kΩ -> GPIO34 -> 15 kΩ -> GND, giving about 3 V. Both IR outputs must stay within the ESP32's 3.3 V input limit. GPIO35 has no internal pull-up. If either module has an open-collector output, provide an external pull-up to 3.3 V. Keep both L298N enable jumpers removed so the ESP32 controls when the motors run.
 
 ## Serial logger and startup check
 
 Open Serial Monitor at **115200 baud** before resetting the ESP32. Messages contain a timestamp and severity, for example `[912 ms] [INFO] Startup self-check passed.` Every reported `ERROR` stops both L298N enable outputs and prevents the mission from continuing.
 
-At startup, the sketch checks for duplicate GPIO assignments, initializes both motor PWM channels, commands all servo channels closed, requires one valid ultrasonic reading from 20 to 4000 mm, reports both IR input states, and reports whether START is held. The mission cannot start until these checks pass. Place a solid target within the ultrasonic sensor's range before resetting the board.
+At startup, the sketch checks for duplicate GPIO assignments, initializes both motor PWM channels, detects and configures the PCA9685 for 50 Hz, commands all five driver channels closed, requires one valid ultrasonic reading from 20 to 4000 mm, rechecks the PCA9685 response, reports both IR input states, and reports whether START is held. A missing driver or failed I2C write is logged as an `ERROR`, both motor enables are disabled, and the mission cannot start. Place a solid target within the ultrasonic sensor's range before resetting the board.
 
 The L298N has no feedback connection, so the ESP32 cannot confirm motor rotation, motor current, or whether driver power is present. Standard positional servos also provide no position feedback. The logger reports these limits as `WARN` messages. Test motor direction with the chassis raised and confirm servo movement visually.
 
@@ -74,7 +75,7 @@ Every travel leg has a timeout. Missing ultrasonic echoes stop travel instead of
 
 Validation: host C++ regression tests passed with warnings treated as errors, including the complete kit-and-beam route, flaps staying open, and stationary beam release. The actual ESP32 build is recorded in `REVIEW.md`. No physical robot testing has been performed.
 
-PWM setup follows [Espressif's Arduino-ESP32 LEDC API](https://docs.espressif.com/projects/arduino-esp32/en/latest/api/ledc.html). Motor control follows the [ST L298 datasheet](https://www.st.com/resource/en/datasheet/l298.pdf). Two motor-enable PWM channels and five servo channels are allocated on the DOIT ESP32 DEVKIT V1; this pin map is not for an ESP32-CAM, C3 or S3.
+Motor PWM setup follows [Espressif's Arduino-ESP32 LEDC API](https://docs.espressif.com/projects/arduino-esp32/en/latest/api/ledc.html). Motor control follows the [ST L298 datasheet](https://www.st.com/resource/en/datasheet/l298.pdf). The two motor-enable outputs use ESP32 PWM; the five servos use PCA9685 channels 0 through 4 over I2C. This pin map is not for an ESP32-CAM, C3 or S3.
 
 
 ## Gripper options and current quantities
@@ -85,11 +86,11 @@ The Amazon listing and Thingiverse model could not be read well enough to verify
 
 For the documented 60 × 20 mm beam cross-section, jaws gripping across the narrow faces need to open beyond 20 mm with clearance. Grip near the beam's lengthwise centre and use broad padded contacts to resist rotation. A retaining lip or shaped jaw can carry weight without relying only on friction, but it must withdraw completely when opened so the beam can fall free. Test one mechanism with the actual beam, through turns and release, before duplicating it.
 
-Current electronics: one DOIT ESP32 DEVKIT V1, one L298N module, two dual-shaft 12 V, 500 RPM DC geared motors, five servos, one front ultrasonic sensor, two rear downward IR sensors, and one start button. Add battery and suitable regulated supplies, wiring and a main power switch. No separate stop pushbutton is used.
+Current electronics: one DOIT ESP32 DEVKIT V1, one L298N module, one PCA9685 16-channel servo driver, two dual-shaft 12 V, 500 RPM DC geared motors, five servos, one front ultrasonic sensor, two rear downward IR sensors, and one start button. Add battery and suitable regulated supplies, wiring and a main power switch. No separate stop pushbutton is used.
 
 ## Remaining build items
 
-Keep five positional servos total, three flap mechanisms, two beam gripper mechanisms, one DOIT ESP32 DEVKIT V1, one front ultrasonic sensor, two rear IR sensors and one start button. Add two wheels matching the motor shafts, one caster, two motor mounts and the chassis. The second shaft on each motor does not require a second motor driver or an additional drive wheel.
+Keep five positional servos total, one PCA9685 servo driver, three flap mechanisms, two beam gripper mechanisms, one DOIT ESP32 DEVKIT V1, one front ultrasonic sensor, two rear IR sensors and one start button. Add two wheels matching the motor shafts, one caster, two motor mounts and the chassis. The second shaft on each motor does not require a second motor driver or an additional drive wheel.
 
 The remaining power parts are a motor-compatible battery pack and matching charger, regulated power for the ESP32 and five servos, a main power switch, and suitable connectors and wiring. Final regulator current depends on the servo models and loads. Include the ultrasonic echo divider and common ground described above. Do not power the servos through the ESP32 board.
 

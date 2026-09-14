@@ -1,4 +1,5 @@
 #include "Arduino.h"
+#include "Wire.h"
 #include <cassert>
 #include <iostream>
 uint32_t tick=0;
@@ -8,16 +9,23 @@ std::map<int,int> levels;
 bool lineMode=false;
 uint32_t movingMs=0;
 int failingWritePin=-1;
+bool wireFail=false;
+bool pcaDevicePresent=true;
+int wireSda=-1, wireScl=-1;
+std::map<int,int> servoTicks;
 std::function<int(int)> readHook;
 std::function<void(std::string)> logHook;
 std::function<void()> timeHook;
 SerialMock Serial;
+TwoWire Wire;
 #include "../CareBotESP32/CareBotESP32.ino"
 void resetTest() {
   tick=0; lastPingMs=0; aborted=false; attempted=false;
   for(auto &attached:motorPwmAttached) attached=true;
   startArmed=false; startHeld=false; startupCheckPassed=true; startPressMs=0;
   movingMs=0; failingWritePin=-1; readHook=nullptr; logHook=nullptr; timeHook=nullptr;
+  wireFail=false; pcaDevicePresent=true; wireSda=-1; wireScl=-1; servoTicks.clear();
+  servoDriverReady=true;
   echoes.clear(); duties.clear(); levels.clear(); Serial.input.clear();
   lineMode=false;
   for(auto &r:released) r=false;
@@ -32,6 +40,12 @@ int main() {
   startupCheckPassed=false;
   setup();
   assert(!aborted && startupCheckPassed);
+  assert(wireSda==21 && wireScl==22 && servoDriverReady);
+  stopped();
+  resetTest();
+  startupCheckPassed=false; servoDriverReady=false; pcaDevicePresent=false;
+  setup();
+  assert(aborted && !startupCheckPassed && !servoDriverReady);
   stopped();
   resetTest();
   startupCheckPassed=false; echoes={0};
@@ -71,7 +85,7 @@ int main() {
   for(bool r:released) assert(r);
   for(unsigned i=0;i<5;++i) {
     uint32_t pulse=SERVO_MIN_US+(SERVO_MAX_US-SERVO_MIN_US)*OPEN_DEG[i]/180;
-    assert(duties[SERVO_PINS[i]]==int(pulse*65535UL/20000UL));
+    assert(servoTicks[SERVO_CHANNELS[i]]==int(pulse*4096UL/20000UL));
   }
   assert(!releaseLoad(0)); stopped();
   resetTest();
@@ -98,6 +112,7 @@ int main() {
   assert(aborted && !motorPwmAttached[0]); stopped();
   resetTest(); assert(!servoAngle(5,90)); stopped();
   resetTest(); assert(!servoAngle(0,181)); stopped();
+  resetTest(); wireFail=true; assert(!servoAngle(0,90)); stopped();
   resetTest(); aborted=true; assert(!servoAngle(0,90));
   resetTest();
   readHook=[](int pin){return pin==START_PIN ? LOW : HIGH;};

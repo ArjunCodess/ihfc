@@ -1,12 +1,14 @@
 /* CareBot: three preloaded flap bins (2, 6, 2) and two beam grippers.
    Target: DOIT ESP32 DEVKIT V1, Arduino-ESP32 3.x, L298N.
    Drive pair: dual-shaft 12 V, 500 RPM DC geared motors.
+   Servos: PCA9685 at I2C address 0x40, channels 0..4.
    Motor stall current and loaded travel speed still require measurement.
-   No servo library required. See ../README.md before wiring/loading.
+   No external servo library required. See ../README.md before wiring/loading.
    Serial 115200: timestamped logger; s = start once, x = stop.
    All distances/timings below require calibration on the actual robot.
 */
 #include <Arduino.h>
+#include <Wire.h>
 #include <math.h>
 #if !defined(CONFIG_IDF_TARGET_ESP32)
 #error "Select a classic ESP32 target such as DOIT ESP32 DEVKIT V1."
@@ -19,7 +21,12 @@ constexpr uint8_t MOTOR_ENABLE_PINS[] = {33, 17}; // ENA, ENB
 constexpr uint8_t TRIG_PIN = 23, ECHO_PIN = 34;
 constexpr uint8_t IR_PINS[] = {35, 16}; // left and right rear sensors
 constexpr uint8_t START_PIN = 32; // one start button to GND; no stop button
-constexpr uint8_t SERVO_PINS[] = {18, 19, 21, 22, 13};
+constexpr uint8_t I2C_SDA_PIN = 21, I2C_SCL_PIN = 22;
+constexpr uint8_t PCA9685_ADDRESS = 0x40;
+constexpr uint8_t SERVO_CHANNELS[] = {0, 1, 2, 3, 4};
+constexpr uint8_t PCA9685_MODE1 = 0x00, PCA9685_PRESCALE = 0xfe;
+constexpr uint8_t PCA9685_LED0_ON_L = 0x06;
+constexpr uint8_t PCA9685_50HZ_PRESCALE = 121;
 constexpr float MOTOR_RATED_VOLTAGE = 12.0f;
 constexpr unsigned MOTOR_RATED_RPM = 500;
 // Servo indices: small A, six-kit bin, small B, right beam, front beam.
@@ -79,6 +86,7 @@ bool aborted = false, attempted = false;
 bool motorPwmAttached[2] = {false, false};
 bool startArmed = false, startHeld = false;
 bool startupCheckPassed = false;
+bool servoDriverReady = false;
 uint32_t startPressMs = 0;
 bool released[5] = {false, false, false, false, false};
 uint32_t lastPingMs = 0;
@@ -166,15 +174,56 @@ void straight(int pwm) {
         sign * constrain(abs(pwm) + RIGHT_TRIM, 0, 255));
 }
 
+bool pcaWriteRegister(uint8_t registerAddress, uint8_t value) {
+  Wire.beginTransmission(PCA9685_ADDRESS);
+  Wire.write(registerAddress);
+  Wire.write(value);
+  return Wire.endTransmission() == 0;
+}
+
+bool pcaPresent() {
+  Wire.beginTransmission(PCA9685_ADDRESS);
+  return Wire.endTransmission() == 0;
+}
+
+bool initializeServoDriver() {
+  servoDriverReady = false;
+  Wire.begin(I2C_SDA_PIN, I2C_SCL_PIN);
+  if (!pcaPresent()) return fail("PCA9685 not detected at I2C address 0x40.");
+  if (!pcaWriteRegister(PCA9685_MODE1, 0x10) ||
+      !pcaWriteRegister(PCA9685_PRESCALE, PCA9685_50HZ_PRESCALE) ||
+      !pcaWriteRegister(PCA9685_MODE1, 0x20))
+    return fail("PCA9685 50 Hz initialization failed.");
+  delay(5);
+  if (!pcaWriteRegister(PCA9685_MODE1, 0xa0))
+    return fail("PCA9685 restart failed.");
+  servoDriverReady = true;
+  logLine("INFO", "PCA9685 detected at 0x40 and configured for 50 Hz.");
+  return true;
+}
+
+bool pcaWriteServo(unsigned channel, uint16_t offTick) {
+  if (channel >= 16 || offTick > 4095) return false;
+  uint8_t firstRegister = PCA9685_LED0_ON_L + 4 * channel;
+  Wire.beginTransmission(PCA9685_ADDRESS);
+  Wire.write(firstRegister);
+  Wire.write(uint8_t(0));
+  Wire.write(uint8_t(0));
+  Wire.write(uint8_t(offTick & 0xff));
+  Wire.write(uint8_t((offTick >> 8) & 0x0f));
+  return Wire.endTransmission() == 0;
+}
+
 bool servoAngle(unsigned index, int degrees) {
   if (!checkStop()) return false;
   if (index >= 5 || degrees < 0 || degrees > 180)
     return fail("Invalid servo index or angle.");
+  if (!servoDriverReady) return fail("PCA9685 is not initialized.");
   uint32_t pulseUs = SERVO_MIN_US +
     (SERVO_MAX_US - SERVO_MIN_US) * constrain(degrees, 0, 180) / 180;
-  // 50 Hz => 20,000 us; the ESP32 on the DOIT DevKit V1 supports 16-bit PWM.
-  if (!ledcWrite(SERVO_PINS[index], (pulseUs * 65535UL) / 20000UL))
-    return fail("Servo PWM write failed.");
+  uint16_t offTick = uint16_t((pulseUs * 4096UL) / 20000UL);
+  if (!pcaWriteServo(SERVO_CHANNELS[index], offTick))
+    return fail("PCA9685 servo channel write failed.");
   return true;
 }
 
@@ -201,9 +250,7 @@ bool validatePinAssignments() {
     MOTOR_DIRECTION_PINS[0], MOTOR_DIRECTION_PINS[1],
     MOTOR_DIRECTION_PINS[2], MOTOR_DIRECTION_PINS[3],
     MOTOR_ENABLE_PINS[0], MOTOR_ENABLE_PINS[1], TRIG_PIN, ECHO_PIN,
-    IR_PINS[0], IR_PINS[1], START_PIN,
-    SERVO_PINS[0], SERVO_PINS[1], SERVO_PINS[2],
-    SERVO_PINS[3], SERVO_PINS[4]
+    IR_PINS[0], IR_PINS[1], START_PIN, I2C_SDA_PIN, I2C_SCL_PIN
   };
   constexpr unsigned pinCount = sizeof(pins) / sizeof(pins[0]);
   for (unsigned i = 0; i < pinCount; ++i)
@@ -220,6 +267,8 @@ bool startupSelfCheck() {
   if (!isfinite(distance))
     return fail("Ultrasonic self-check failed: no valid echo from 20 to 4000 mm.");
   logValue("INFO", "Ultrasonic distance: ", distance, "mm");
+  if (!pcaPresent()) return fail("PCA9685 stopped responding at address 0x40.");
+  logLine("INFO", "PCA9685 I2C response confirmed.");
   for (unsigned i = 0; i < 2; ++i) {
     logPrefix("INFO"); Serial.print(i == 0 ? "Left IR: " : "Right IR: ");
     Serial.println(digitalRead(IR_PINS[i]) == BLACK_LEVEL ? "BLACK" : "CLEAR");
@@ -230,7 +279,7 @@ bool startupSelfCheck() {
     logLine("INFO", "START input is released.");
   logLine("INFO", "L298N PWM outputs initialized and motors held off.");
   logLine("WARN", "No motor feedback sensor: rotation and driver current are not verified.");
-  logLine("WARN", "No servo feedback sensor: commanded positions are not verified.");
+  logLine("WARN", "PCA9685 has no position feedback: servo movement is not verified.");
   startupCheckPassed = true;
   logLine("INFO", "Startup self-check passed.");
   return true;
@@ -440,7 +489,7 @@ void setup() {
   for (uint8_t pin : IR_PINS) pinMode(pin, INPUT);
   pinMode(START_PIN, INPUT_PULLUP);
   if (!validatePinAssignments()) return;
-  // ENA/ENB use channels 0 and 1; servos use 8..12 on the other group.
+  // ENA and ENB use the ESP32 LEDC channels 0 and 1.
   for (unsigned i = 0; i < 2; ++i) {
     if (!ledcAttachChannel(MOTOR_ENABLE_PINS[i], 20000, 8, i)) {
       fail("Motor PWM allocation failed."); return;
@@ -451,13 +500,11 @@ void setup() {
     }
   }
   logLine("INFO", "L298N PWM channels initialized.");
+  if (!initializeServoDriver()) return;
   for (unsigned i = 0; i < 5; ++i) {
-    if (!ledcAttachChannel(SERVO_PINS[i], 50, 16, 8 + i)) {
-      fail("Servo PWM allocation failed."); return;
-    }
     if (!servoAngle(i, CLOSED_DEG[i])) return;
   }
-  logLine("INFO", "Servo PWM channels initialized and commanded closed.");
+  logLine("INFO", "PCA9685 channels 0 through 4 commanded closed.");
   if (!waitChecked(800)) return;
   logPrefix("INFO"); Serial.print("Motor: "); Serial.print(MOTOR_RATED_VOLTAGE);
   Serial.print(" V, "); Serial.print(MOTOR_RATED_RPM);

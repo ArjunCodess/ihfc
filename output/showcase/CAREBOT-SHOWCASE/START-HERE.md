@@ -21,7 +21,7 @@ CareBot carries ten preloaded medical kits in three bins and two beams in servo 
 
 ## Software setup
 
-Use a **DOIT ESP32 DEVKIT V1**. In Arduino IDE, install **esp32 by Espressif Systems**, version **3.3.5** to reproduce the verified build, and select **DOIT ESP32 DEVKIT V1** under Tools > Board. Choose the connected board's port. The separate **Arduino ESP32 Boards** package is not the package used for this build. No additional servo library is needed.
+Use a **DOIT ESP32 DEVKIT V1** and a PCA9685 servo driver at address `0x40`. In Arduino IDE, install **esp32 by Espressif Systems**, version **3.3.5** to reproduce the verified build, and select **DOIT ESP32 DEVKIT V1** under Tools > Board. Choose the connected board's port. The separate **Arduino ESP32 Boards** package is not the package used for this build. The firmware uses the built-in `Wire` library, so no additional servo library is needed.
 
 Open `CareBotESP32/CareBotESP32.ino`, compile, then upload only after checking the pin wiring and calibration. Set Serial Monitor to **115200 baud**. Install the board package and any USB serial driver before leaving for a venue without internet. The ZIP does not include Arduino IDE, board packages, USB drivers or a C++ compiler.
 
@@ -31,4 +31,4 @@ Release START after powering up, load the robot after the servos close, then pre
 
 The packaged source passed an actual ESP32 compilation and host regression tests. It has not been tested on a physical robot. Motor electrical specifications, servo sizing, movement timings, landing positions and the battery setup still need checking. The source contains example calibration values; a successful compile does not make those values correct for your chassis.
 
-Only the current L298N, open-only servo version is included. Older motor-driver variants are not part of this pack.
+Only the current L298N motor-driver and PCA9685 servo-driver version is included. Older driver variants are not part of this pack.

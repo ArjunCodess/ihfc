@@ -49,6 +49,7 @@ L298N dual motor-driver module & 1 & Controls both drive motors \\
 Dual-shaft 12 V, 500 RPM DC geared motor & 2 & Left and right drive \\
 Front ultrasonic sensor & 1 & Wall-distance measurement \\
 Rear digital IR reflectance sensor & 2 & Paired black-crossing detection \\
+PCA9685 16-channel servo driver & 1 & Controls all five servos over I$^2$C \\
 Positional servo & 5 & Three bin flaps and two beam grippers \\
 Start pushbutton & 1 & Starts one mission after reset \\
 Drive wheels and caster & 2 + 1 & Supports differential drive \\
@@ -69,13 +70,14 @@ GPIO & Connection \\
 33, 17 & L298N ENA, ENB motor PWM \\
 23, 34 & Ultrasonic TRIG, ECHO \\
 35, 16 & Left and right rear IR digital outputs \\
-18, 19, 21 & Two-kit bin, six-kit bin, two-kit bin servos \\
-22, 13 & Right-side and front beam-gripper servos \\
+21, 22 & PCA9685 SDA, SCL \\
 32 & Start button to ground, using the internal pull-up \\
 \bottomrule
 \end{tabular}
 
 GPIO34 and GPIO35 are input-only pins, which suits the ultrasonic ECHO and left IR inputs. A 5 V ultrasonic ECHO signal needs a divider before GPIO34. The planned divider is 10~k$\Omega$ from ECHO to GPIO34 and 15~k$\Omega$ from GPIO34 to ground. Both IR outputs must remain within the ESP32's 3.3 V input limit. Remove the L298N ENA and ENB jumpers so GPIO33 and GPIO17 can control speed.
+
+Connect PCA9685 VCC to ESP32 3.3~V, OE to ground, and leave its address at the default \texttt{0x40}. Connect the regulated servo supply to V+ and join all grounds. Channels 0--4 drive the two-kit bin, six-kit bin, two-kit bin, right beam gripper, and front beam gripper respectively. Never power the servos from ESP32 3.3~V or PCA9685 VCC.
 
 \newpage
 \section*{Mission sequence}
@@ -95,7 +97,7 @@ The code releases a complete preloaded group; it does not count individual kits.
 
 The final sketch is \texttt{output/arduino/CareBotESP32/CareBotESP32.ino}. Select \textbf{DOIT ESP32 DEVKIT V1} in Arduino IDE and use the Espressif Arduino-ESP32 3.x board package. No separate servo library is required.
 
-On boot, the program commands all five servos closed and runs a startup self-check. It verifies unique GPIO assignments, PWM setup, servo commands, one valid ultrasonic echo, both IR input states, and the START input state. A missing ultrasonic echo blocks the mission. The start button must first be released and then held for at least 40 ms. One press starts one mission; reset is required before another run. Sending \texttt{x} through Serial Monitor at 115200 baud stops the motors while USB remains connected. The main switch provides the physical power stop.
+On boot, the program detects the PCA9685, configures it for 50~Hz, commands all five servo channels closed, and runs a startup self-check. It verifies unique GPIO assignments, motor PWM setup, PCA9685 response, servo commands, one valid ultrasonic echo, both IR input states, and the START input state. A missing driver, failed I$^2$C command, or missing ultrasonic echo blocks the mission. The start button must first be released and then held for at least 40 ms. One press starts one mission; reset is required before another run. Sending \texttt{x} through Serial Monitor at 115200 baud stops the motors while USB remains connected. The main switch provides the physical power stop.
 
 Serial messages contain a millisecond timestamp and an \texttt{INFO}, \texttt{WARN}, or \texttt{ERROR} severity. Every reported error disables both L298N enable outputs. The program warns that it cannot verify motor rotation, driver current, or servo position because those devices have no feedback connections.
 
@@ -109,7 +111,7 @@ The front ultrasonic sensor must see past or below the carried front beam. Both 
 
 \section*{Verification status}
 
-The earlier source compiled for \texttt{esp32:esp32:esp32doit-devkit-v1} with Arduino-ESP32 3.3.5 and all warnings enabled. The current L298N logger revision passes a warning-clean C++17 compile against the host regression harness. Run a fresh Arduino board build before uploading. The tests cover motor direction, startup sensor failure, wall overshoot, start debounce, marker handling, the full 2--6--2 route, open-only flaps, and stationary release of both beams. No physical robot run has been completed, so mechanical and navigation performance remain unverified.
+The current L298N and PCA9685 source compiled for \texttt{esp32:esp32:esp32doit-devkit-v1} with Arduino-ESP32 3.3.5 and all warnings enabled. It also passes a warning-clean C++17 compile against the host regression harness. The tests cover PCA9685 detection and channel writes, motor direction, startup sensor failure, wall overshoot, start debounce, marker handling, the full 2--6--2 route, open-only flaps, and stationary release of both beams. No physical robot run has been completed, so mechanical and navigation performance remain unverified.
 
 \section*{Second robot status}
 
