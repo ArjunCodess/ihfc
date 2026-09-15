@@ -1,4 +1,4 @@
-# CareBot showcase pack
+# CareBot project pack
 
 CareBot carries ten preloaded medical kits in three bins and two beams in servo grippers. It follows a fixed route, drops the kits in groups of 2, 6 and 2, then opens both beam grippers at its final stop. Every delivery servo stays open. The robot does not reverse after dropping the beams.
 
@@ -16,14 +16,14 @@ CareBot carries ten preloaded medical kits in three bins and two beams in servo 
 | `VERIFICATION.md` | Show what has actually been tested and what is still unverified. |
 | `TECHNICAL-GUIDE.md` | Read the longer build and calibration notes. |
 | `tests/` and `evidence/` | Run the host regression tests or show saved compile and test results. |
-| `compile.ps1` | Compile with an already-installed Arduino CLI and ESP32 core. |
-| `SHA256SUMS.txt` | Check that the packaged files have not changed. |
+| `compile.ps1` | Compile with Arduino CLI, including the copy bundled with Arduino IDE, and the ESP32 core. |
+| `SHA256SUMS.txt` | Check that the project-pack files have not changed. |
 
 ## Software setup
 
 Use a **DOIT ESP32 DEVKIT V1** and a PCA9685 servo driver at address `0x40`. In Arduino IDE, install **esp32 by Espressif Systems**, version **3.3.5** to reproduce the verified build, and select **DOIT ESP32 DEVKIT V1** under Tools > Board. Choose the connected board's port. The separate **Arduino ESP32 Boards** package is not the package used for this build. The firmware uses the built-in `Wire` library, so no additional servo library is needed.
 
-Open `CareBotESP32/CareBotESP32.ino`, compile, then upload only after checking the pin wiring and calibration. Set Serial Monitor to **115200 baud**. Install the board package and any USB serial driver before leaving for a venue without internet. The ZIP does not include Arduino IDE, board packages, USB drivers or a C++ compiler.
+Open the only sketch, `CareBotESP32/CareBotESP32.ino`, compile, then upload only after checking `WIRING.md` and calibration. Set Serial Monitor to **115200 baud**. Install the board package and any USB serial driver before leaving for a venue without internet. `output/CareBot.zip` is a copy of this project pack; it does not include Arduino IDE, board packages, USB drivers or a C++ compiler.
 
 Release START after powering up, load the robot after the servos close, then press START or send `s`. Sending `x` while connected stops the program. Use the main battery switch when running without a computer. Reset closes the servos and allows another run; clear the mechanisms before resetting.
 

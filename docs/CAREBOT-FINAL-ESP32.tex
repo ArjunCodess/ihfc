@@ -95,7 +95,7 @@ The code releases a complete preloaded group; it does not count individual kits.
 
 \section*{Firmware behavior}
 
-The final sketch is \texttt{output/arduino/CareBotESP32/CareBotESP32.ino}. Select \textbf{DOIT ESP32 DEVKIT V1} in Arduino IDE and use the Espressif Arduino-ESP32 3.x board package. No separate servo library is required.
+The only sketch is \texttt{output/CareBot/CareBotESP32/CareBotESP32.ino}. Select \textbf{DOIT ESP32 DEVKIT V1} in Arduino IDE and use the Espressif Arduino-ESP32 3.x board package. No separate servo library is required. The detailed board-label map is in \texttt{output/CareBot/WIRING.md}.
 
 On boot, the program detects the PCA9685, configures it for 50~Hz, commands all five servo channels closed, and runs a startup self-check. It verifies unique GPIO assignments, motor PWM setup, PCA9685 response, servo commands, one valid ultrasonic echo, both IR input states, and the START input state. A missing driver, failed I$^2$C command, or missing ultrasonic echo blocks the mission. The start button must first be released and then held for at least 40 ms. One press starts one mission; reset is required before another run. Sending \texttt{x} through Serial Monitor at 115200 baud stops the motors while USB remains connected. The main switch provides the physical power stop.
 

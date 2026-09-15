@@ -19,25 +19,15 @@ On this image, the first horizontal black separator on the left is the entrance 
 
 The complete kit-and-beam route is enabled. `BEAM_DROP_WALL_MM = 220` is an example wall clearance, just like the kit wall stops; calibrate it on the actual robot. Each servo only opens when delivering. There is no automatic re-closing, beam repositioning, or withdrawal after dropping the beams.
 
-## Wiring for the assumed hardware
+## Wiring
 
-| Device | ESP32 GPIO |
-| --- | --- |
-| L298N IN1 / IN2, left motor direction | 25 / 26 |
-| L298N IN3 / IN4, right motor direction | 27 / 14 |
-| L298N ENA / ENB, motor PWM | 33 / 17 |
-| Ultrasonic TRIG / ECHO | 23 / 34 |
-| Left / right rear IR digital output | 35 / 16 |
-| PCA9685 SDA / SCL | 21 / 22 |
-| Start button to GND | 32 |
+Use [WIRING.md](WIRING.md) for the complete DOIT ESP32 DEVKIT V1 label-to-GPIO map, PCA9685 channel assignments, power connections, and the ultrasonic ECHO divider. The sketch and that wiring sheet are the two files to check before connecting hardware.
 
 Connect OUT1/OUT2 to the left motor and OUT3/OUT4 to the right motor. Remove the ENA and ENB jumpers, then connect ENA to GPIO33 and ENB to GPIO17 for PWM speed control. Connect the 12 V motor supply to the L298N motor-supply terminal and join the supply, L298N and ESP32 grounds. Never connect 12 V to the module's 5 V terminal or directly to the ESP32. Follow the exact module's instructions for its 5 V regulator jumper.
 
 Check that the L298N module's continuous-current and startup/stall-current capability matches the motors. The motors are rated 12 V and 500 RPM, but their stall current still needs measurement or a trustworthy datasheet. The L298N also drops some voltage, so the motors will receive less than the battery voltage while running.
 
-Connect ESP32 GPIO21 to PCA9685 SDA, GPIO22 to SCL, ESP32 3.3 V to PCA9685 VCC, and PCA9685 OE to GND. Leave the board at its default I2C address `0x40`. Plug the five servo signal leads into PCA9685 channels 0 through 4: bin A, middle bin, bin B, right beam gripper, then front beam gripper. Connect a separate regulated servo supply, suitable for the actual servo voltage and combined current, to PCA9685 V+. Join its ground to PCA9685 GND, ESP32 GND, L298N GND and sensor grounds. Do not power the servos from ESP32 3.3 V or from the PCA9685 VCC logic pin.
-
-For a 5 V HC-SR04, use a divider on ECHO: ECHO -> 10 kΩ -> GPIO34 -> 15 kΩ -> GND, giving about 3 V. Both IR outputs must stay within the ESP32's 3.3 V input limit. GPIO35 has no internal pull-up. If either module has an open-collector output, provide an external pull-up to 3.3 V. Keep both L298N enable jumpers removed so the ESP32 controls when the motors run.
+`WIRING.md` is the pin and power reference. In particular, VCC is PCA9685 logic power, while V+ takes the separate regulated servo supply; they are not interchangeable. The wiring sheet also shows the 5 V ultrasonic ECHO divider and the 3.3 V limit for both IR inputs. Keep both L298N enable jumpers removed so the ESP32 controls when the motors run.
 
 ## Serial logger and startup check
 

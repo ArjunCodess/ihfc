@@ -1,22 +1,24 @@
 # Wiring sheet
 
-This pin map is for a DOIT ESP32 DEVKIT V1, L298N and PCA9685 servo driver. Use the GPIO numbers printed on the board, not the physical pin positions. GPIO34 and GPIO35 are input-only pins, which is correct here because they receive the ultrasonic ECHO and left IR signals.
+This pin map is for the common 30-pin DOIT ESP32 DEVKIT V1 with the USB connector at the bottom and the ESP32 module at the top. The `D` labels below are board silkscreen labels, while the numbers in the sketch are ESP32 GPIO numbers. `TX2` is GPIO17 and `RX2` is GPIO16. Some clones print `IO25` or `25` instead of `D25`; check the markings on your actual board before connecting wires. GPIO34 and GPIO35 are input-only, which suits ECHO and the left IR output. The L298N and PCA9685 are separate driver boards.
 
-| ESP32 GPIO | Connect to |
-| ---: | --- |
-| 25 | L298N IN1 |
-| 26 | L298N IN2 |
-| 27 | L298N IN3 |
-| 14 | L298N IN4 |
-| 33 | L298N ENA, remove its jumper |
-| 17 | L298N ENB, remove its jumper |
-| 23 | Ultrasonic TRIG |
-| 34 | Ultrasonic ECHO through the divider below |
-| 35 | Left rear IR sensor digital output, at a compatible logic voltage |
-| 16 | Right rear IR sensor digital output, at a compatible logic voltage |
-| 21 | PCA9685 SDA |
-| 22 | PCA9685 SCL |
-| 32 | Start button; other terminal to GND |
+| DevKit V1 label | GPIO in code | Header side | Connect to |
+| --- | ---: | --- | --- |
+| `D25` | 25 | Left | L298N IN1 |
+| `D26` | 26 | Left | L298N IN2 |
+| `D27` | 27 | Left | L298N IN3 |
+| `D14` | 14 | Left | L298N IN4 |
+| `D33` | 33 | Left | L298N ENA, remove its jumper |
+| `TX2` | 17 | Right | L298N ENB, remove its jumper |
+| `D23` | 23 | Right | Ultrasonic TRIG |
+| `D34` | 34 | Left | Ultrasonic ECHO through the divider below |
+| `D35` | 35 | Left | Left rear IR digital output, at a compatible logic voltage |
+| `RX2` | 16 | Right | Right rear IR digital output, at a compatible logic voltage |
+| `D21` | 21 | Right | PCA9685 SDA |
+| `D22` | 22 | Right | PCA9685 SCL |
+| `D32` | 32 | Left | Start button; other terminal to GND |
+
+The DevKit V1 `3V3` pin supplies PCA9685 VCC logic power. Use a `GND` pin for the common ground. `VIN` is not the servo rail; do not connect the 12 V motor battery to it. `EN` is the board reset/enable pin, not the L298N ENA or ENB input. The board-label mapping follows the [DevKit V1 board definition](https://github.com/wokwi/wokwi-boards/blob/main/boards/esp32-devkit-v1/board.json); clone silkscreens can differ.
 
 ## Motor driver and power
 
@@ -51,10 +53,10 @@ GPIO35 has no internal pull-up. An open-collector IR output may need an external
 
 | Connection | Destination |
 | --- | --- |
-| ESP32 GPIO21 | PCA9685 SDA |
-| ESP32 GPIO22 | PCA9685 SCL |
-| ESP32 3.3 V | PCA9685 VCC logic power |
-| Common GND | PCA9685 GND and OE |
+| ESP32 `D21` / GPIO21 | PCA9685 SDA |
+| ESP32 `D22` / GPIO22 | PCA9685 SCL |
+| ESP32 `3V3` | PCA9685 VCC logic power |
+| Common ESP32 `GND` | PCA9685 GND and OE |
 | Regulated servo supply positive | PCA9685 V+ |
 | PCA9685 channel 0 | Bin A servo, 2 kits |
 | PCA9685 channel 1 | Middle-bin servo, 6 kits |

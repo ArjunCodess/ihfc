@@ -1,5 +1,7 @@
 # PCA9685 servo driver implementation plan
 
+This is a historical implementation record. The current firmware and wiring files were consolidated at `output/CareBot/CareBotESP32/CareBotESP32.ino` and `output/CareBot/WIRING.md` on 2026-09-15.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Move all five CareBot servo signals from ESP32 LEDC pins to PCA9685 channels 0 through 4.
