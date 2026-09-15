@@ -73,17 +73,17 @@ int main() {
   assert(duties[17]==100 && levels[27]==HIGH && levels[14]==LOW);
   stopMotors(); stopped();
   resetTest();
-  echoes={echo(800),echo(600),echo(220),echo(220),echo(220)};
-  assert(wallDistance(220)); stopped();
+  echoes={echo(800),echo(600),echo(200)};
+  assert(approachWall()); assert(movingMs>0); stopped();
   resetTest();
-  echoes={echo(220),echo(250),echo(400),echo(400),echo(400)};
-  assert(wallDistance(400)); stopped();
+  echoes={echo(180)};
+  assert(approachWall()); assert(movingMs==0); stopped();
   resetTest(); echoes={0};
-  assert(!wallDistance(220)); assert(aborted); stopped();
-  resetTest(); echoes={echo(800),0,0,0};
-  assert(!wallDistance(220)); stopped();
+  assert(!approachWall()); assert(aborted); stopped();
+  resetTest(); echoes={echo(800),0};
+  assert(!approachWall()); assert(aborted); stopped();
   resetTest(); echoes={echo(800),echo(50)};
-  assert(!wallDistance(220)); stopped();
+  assert(approachWall()); stopped();
   resetTest(); Serial.input.push_back('x');
   assert(!turn90(true)); stopped();
   resetTest(); Serial.input.push_back('x');
@@ -101,7 +101,7 @@ int main() {
   }
   assert(!releaseLoad(0)); stopped();
   resetTest();
-  assert(!wallDistance(220)); // fixed far reading must time out
+  assert(!approachWall()); // fixed far reading must time out
   assert(tick>=LEG_TIMEOUT_MS); stopped();
   resetTest();
   assert(moveMm(1.8f)); // 10 ms motion, despite 65 ms initial ping spacing
@@ -113,12 +113,12 @@ int main() {
   assert(moveMm(-16)); assert(movingMs==100); stopped();
   resetTest(); assert(!moveMm(NAN)); stopped();
   resetTest(); assert(!moveMm(1e30f)); stopped();
-  resetTest(); assert(!wallDistance(NAN)); stopped();
-  resetTest(); assert(!wallDistance(50)); stopped();
-  resetTest(); echoes={echo(800),echo(170),echo(170),echo(170)};
-  assert(!wallDistance(220)); stopped(); // overshoot must not authorize a drop
-  resetTest(); echoes={echo(220),echo(500),echo(500),echo(500)};
-  assert(!wallDistance(400)); stopped();
+  resetTest(); echoes={echo(800),echo(201),echo(199)};
+  assert(approachWall()); stopped(); // only the 20 cm threshold stops travel
+  resetTest(); echoes={echo(200)};
+  assert(!moveMm(30)); assert(movingMs==0); stopped();
+  resetTest(); echoes={echo(800),echo(200)};
+  assert(!moveMm(90)); assert(aborted); stopped();
   resetTest(); echoes={0}; assert(!middleMarker()); assert(movingMs==0);
   resetTest(); failingWritePin=33; drive(100,100);
   assert(aborted && !motorPwmAttached[0]); stopped();
@@ -173,15 +173,15 @@ int main() {
   int phase=0; uint32_t markerStart=0;
   logHook=[&](std::string s){
     if(s.find("Top right ->") == 0) {
-      phase=1; echoes={echo(800),echo(220),echo(220),echo(220)};
+      phase=1; echoes={echo(800),echo(200)};
     }
     if(s.find("Left middle:") == 0) {phase=2; markerStart=tick;}
     if(s.find("Bottom left wall:") == 0) {
-      phase=3; echoes={echo(800),echo(220),echo(220),echo(220)};
+      phase=3; echoes={echo(800),echo(200)};
     }
     if(s.find("Turn left to face right;") == 0) {
       phase=4;
-      echoes={echo(800),echo(220),echo(220),echo(220)};
+      echoes={echo(800),echo(200)};
     }
   };
   readHook=[&](int pin){

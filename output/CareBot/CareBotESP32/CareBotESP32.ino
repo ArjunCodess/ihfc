@@ -47,9 +47,7 @@ constexpr float REVERSE_MM_PER_SECOND = 160.0f; // example only; measure separat
 constexpr uint32_t SETTLE_MS = 250, RELEASE_MS = 1100;
 constexpr uint32_t LEG_TIMEOUT_MS = 25000, PING_INTERVAL_MS = 65;
 constexpr uint32_t ECHO_TIMEOUT_US = 25000, LINE_STABLE_MS = 20;
-constexpr float MIN_CLEARANCE_MM = 100; // include ALL forward overhangs
-constexpr float FIRST_WALL_STOP_MM = 220, LAST_KIT_WALL_STOP_MM = 220;
-constexpr float WALL_TOLERANCE_MM = 8;
+constexpr float WALL_STOP_MM = 200; // one ultrasonic stop threshold for all forward travel
 
 // Start TOP RIGHT facing LEFT. Two route turns: LEFT -> DOWN -> RIGHT.
 // Both route turns are 90-degree left turns; lane corrections add paired turns.
@@ -67,8 +65,6 @@ constexpr float LAST_OUTLET_CORRECTION_MM = 0;
 // Final leg faces RIGHT/east. Positive lane shift moves UP/north;
 // negative moves DOWN/south. Align the right beam to QZ's TOP boundary.
 constexpr float BEAM_LANE_SHIFT_MM = 0;
-// Example clearance from the RIGHT WALL; calibrate with both beams mounted.
-constexpr float BEAM_DROP_WALL_MM = 220;
 
 static_assert(DRIVE_PWM > 0 && DRIVE_PWM <= 255 && SLOW_PWM > 0 &&
               SLOW_PWM <= DRIVE_PWM && TURN_PWM > 0 && TURN_PWM <= 255,
@@ -298,50 +294,30 @@ bool startupSelfCheck() {
   return true;
 }
 
-// Move toward a wall OR reverse away from it, selected from the initial reading.
-// Confirm three target readings while stopped; bound the entire maneuver.
-bool wallDistance(float targetMm) {
+// Drive forward continuously until the first valid reading at or below 20 cm.
+bool approachWall() {
   stopMotors();
-  logValue("INFO", "Wall target: ", targetMm, "mm");
-  if (!isfinite(targetMm) || targetMm < MIN_CLEARANCE_MM + WALL_TOLERANCE_MM ||
-      targetMm > 4000 - WALL_TOLERANCE_MM)
-    return fail("Invalid wall target.");
+  logValue("INFO", "Wall stop threshold: ", WALL_STOP_MM, "mm");
   float initial = rangeMm();
   if (!isfinite(initial)) return fail("No wall reading at start of move.");
   logValue("INFO", "Initial wall distance: ", initial, "mm");
-  if (initial < MIN_CLEARANCE_MM) return fail("Insufficient front clearance.");
-  bool forward = initial > targetMm;
-  unsigned confirmed = 0, invalid = 0;
+  if (initial <= WALL_STOP_MM) {
+    logValue("INFO", "Wall stop at: ", initial, "mm");
+    return settle();
+  }
   uint32_t start = millis();
+  straight(SLOW_PWM);
+  if (!checkStop()) return false;
   while (millis() - start < LEG_TIMEOUT_MS) {
-    if (!checkStop()) return false;
     float distance = rangeMm();
-    if (!isfinite(distance)) {
-      stopMotors(); confirmed = 0;
-      logLine("WARN", "Invalid ultrasonic reading during wall move.");
-      if (++invalid >= 3) return fail("Ultrasonic lost the wall.");
-      continue;
-    }
-    invalid = 0;
-    if (distance < MIN_CLEARANCE_MM) return fail("Front clearance limit.");
-    bool reached = fabsf(distance - targetMm) <= WALL_TOLERANCE_MM;
-    if (reached) {
+    if (!isfinite(distance)) return fail("Ultrasonic lost the wall.");
+    if (distance <= WALL_STOP_MM) {
       stopMotors();
-      if (++confirmed >= 3) {
-        logValue("INFO", "Wall target confirmed at: ", distance, "mm");
-        return settle();
-      }
-    } else {
-      confirmed = 0;
-      // Do not release a load merely because we crossed the target coordinate.
-      if ((forward && distance < targetMm - WALL_TOLERANCE_MM) ||
-          (!forward && distance > targetMm + WALL_TOLERANCE_MM))
-        return fail("Wall target overshot. Reduce speed or recalibrate.");
-      int pwm = fabsf(distance - targetMm) < 150 ? SLOW_PWM : DRIVE_PWM;
-      straight(forward ? pwm : -pwm);
+      logValue("INFO", "Wall stop at: ", distance, "mm");
+      return settle();
     }
   }
-  return fail("Wall move timed out.");
+  return fail("Wall approach timed out.");
 }
 
 bool moveMm(float mm) {
@@ -361,7 +337,7 @@ bool moveMm(float mm) {
   if (mm > 0) {
     float distance = rangeMm();
     if (!isfinite(distance)) return fail("No echo before forward offset.");
-    if (distance <= MIN_CLEARANCE_MM) return fail("Obstacle before offset.");
+    if (distance <= WALL_STOP_MM) return fail("Wall before forward offset.");
   }
   straight(mm > 0 ? DRIVE_PWM : -DRIVE_PWM);
   if (!checkStop()) return false;
@@ -377,7 +353,7 @@ bool moveMm(float mm) {
         remaining > (ECHO_TIMEOUT_US + 999) / 1000 + 2) {
       float distance = rangeMm();
       if (!isfinite(distance)) return fail("No echo during forward offset.");
-      if (distance < MIN_CLEARANCE_MM) return fail("Obstacle during offset.");
+      if (distance <= WALL_STOP_MM) return fail("Wall during forward offset.");
     }
     if (millis() - start < duration) delay(1);
   }
@@ -404,7 +380,7 @@ bool middleMarker() {
   stopMotors();
   float initial = rangeMm();
   if (!isfinite(initial)) return fail("No echo before seeking marker.");
-  if (initial <= LAST_KIT_WALL_STOP_MM) return fail("Wall before middle marker.");
+  if (initial <= WALL_STOP_MM) return fail("Wall before middle marker.");
   logLine("INFO", "Left middle: seek entry marker for six-kit delivery.");
   uint32_t start = millis(), changeMs = start;
   bool raw = bothIrSensorsBlack(), stable = raw;
@@ -415,7 +391,7 @@ bool middleMarker() {
     if (millis() - lastPingMs >= PING_INTERVAL_MS) {
       float distance = rangeMm();
       if (!isfinite(distance)) return fail("No echo while seeking line.");
-      if (distance <= LAST_KIT_WALL_STOP_MM) return fail("Wall before middle marker.");
+      if (distance <= WALL_STOP_MM) return fail("Wall before middle marker.");
     }
     bool now = bothIrSensorsBlack();
     if (now != raw) { raw = now; changeMs = millis(); }
@@ -460,17 +436,14 @@ bool releaseBeams() {
 
 bool runMission() {
   logLine("INFO", "Mission started.");
-  if (!(isfinite(BEAM_LANE_SHIFT_MM) && isfinite(BEAM_DROP_WALL_MM) &&
-        BEAM_DROP_WALL_MM >= MIN_CLEARANCE_MM + WALL_TOLERANCE_MM &&
-        BEAM_DROP_WALL_MM <= 4000 - WALL_TOLERANCE_MM))
-    return fail("Invalid beam drop settings.");
+  if (!isfinite(BEAM_LANE_SHIFT_MM)) return fail("Invalid beam lane shift.");
   logLine("INFO", "Top right -> top left wall; turn down; drop two kits.");
-  if (!wallDistance(FIRST_WALL_STOP_MM) || !turn90(true) ||
+  if (!approachWall() || !turn90(true) ||
       !moveMm(FIRST_OUTLET_CORRECTION_MM) || !releaseLoad(0)) return false;
   if (!middleMarker() || !moveMm(MIDDLE_OUTLET_CORRECTION_MM) ||
       !releaseLoad(1)) return false;
   logLine("INFO", "Bottom left wall: drop last two kits.");
-  if (!wallDistance(LAST_KIT_WALL_STOP_MM) ||
+  if (!approachWall() ||
       !moveMm(LAST_OUTLET_CORRECTION_MM) || !releaseLoad(2)) return false;
   logLine("INFO", "Turn left to face right; align lane above bottom-right quarantine.");
   if (!turn90(true)) return false;
@@ -479,7 +452,7 @@ bool runMission() {
     if (!turn90(north) || !moveMm(fabsf(BEAM_LANE_SHIFT_MM)) ||
         !turn90(!north)) return false;
   }
-  if (!wallDistance(BEAM_DROP_WALL_MM)) return false;
+  if (!approachWall()) return false;
   logLine("INFO", "Open both beam grippers; drop beams and stop.");
   if (!releaseBeams()) return false;
   logLine("INFO", "Mission complete. Reset and reload before another run.");

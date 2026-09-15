@@ -4,11 +4,11 @@ The robot follows a stored sequence. It uses wall distance and a black marker to
 
 ## Route
 
-1. Start at the top right facing left. Drive toward the left wall, stop at the configured clearance, turn left to face down, and open the first two-kit bin.
+1. Start at the top right facing left. Drive toward the left wall until the ultrasonic reads 20 cm or less, turn left to face down, and open the first two-kit bin.
 2. Drive down the left side. After detecting the configured black crossing, apply the outlet correction and open the six-kit bin.
 3. Continue to the bottom wall. Stop and open the last two-kit bin.
 4. Turn left to face right. Apply the optional approach-lane shift, then drive toward the right wall.
-5. Stop at the beam-drop clearance. Send open commands to both grippers, wait for the beams to drop, and remain stopped.
+5. Stop at the same 20 cm threshold. Send open commands to both grippers, wait for the beams to drop, and remain stopped.
 
 The left-side separator marks entry to the middle area. A configurable offset accounts for the rear sensor's position and where the middle bin should drop its kits.
 
@@ -20,7 +20,7 @@ The left-side separator marks entry to the middle area. A configurable offset ac
 | `loop()` | Debounces START, accepts Serial commands, and allows one mission attempt per reset. |
 | `runMission()` | Executes the complete route in order. |
 | `rangeMm()` | Sends an ultrasonic trigger and converts the echo duration to millimetres. No echo returns an invalid reading. |
-| `wallDistance()` | Moves to a wall-distance target. Three stopped readings must be within tolerance before it succeeds. |
+| `approachWall()` | Drives forward while valid ultrasonic readings are above 200 mm. Stops on the first reading at or below 200 mm. |
 | `middleMarker()` | Requires clear floor, then counts debounced black crossings. Stops on a missing marker or unexpected wall. |
 | `moveMm()` | Converts a small calibrated forward/reverse offset to running time. This is an estimate without encoders. |
 | `turn90()` | Runs the wheels in opposite directions for a calibrated turn duration. |
@@ -44,4 +44,4 @@ The code records which loads have been released and rejects a repeated release. 
 
 ## Software fault handling
 
-Missing echoes, a missing PCA9685, failed I2C writes, target overshoot, travel timeout, invalid settings, invalid servo commands and motor PWM failures stop the mission. The motors then stay stopped until reset. Servos remain at their last commanded positions. Serial stop is checked between operations; one ultrasonic reading can block for up to 25 ms.
+Missing echoes, a missing PCA9685, failed I2C writes, travel timeout, invalid settings, invalid servo commands and motor PWM failures stop the mission. The motors then stay stopped until reset. Servos remain at their last commanded positions. Serial stop is checked between operations; one ultrasonic reading can block for up to 25 ms.

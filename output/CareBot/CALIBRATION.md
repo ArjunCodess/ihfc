@@ -16,11 +16,7 @@ The source defaults below are examples, not measurements of the assembled robot.
 | `DRIVE_MM_PER_SECOND` | 180 | __________ |
 | `REVERSE_MM_PER_SECOND` | 160 | __________ |
 | `TURN_LEFT_MS` / `TURN_RIGHT_MS` | 580 / 580 | __________ |
-| `MIN_CLEARANCE_MM` | 100 | __________ |
-| `FIRST_WALL_STOP_MM` | 220 | __________ |
-| `LAST_KIT_WALL_STOP_MM` | 220 | __________ |
-| `BEAM_DROP_WALL_MM` | 220 | __________ |
-| `WALL_TOLERANCE_MM` | 8 | __________ |
+| `WALL_STOP_MM` (one threshold for all forward travel) | 200 | User-specified 20 cm |
 | `BLACK_LEVEL` | LOW | __________ |
 | `MIDDLE_MARKER_NUMBER` | 1 | __________ |
 | `FIRST_OUTLET_CORRECTION_MM` | 0 | __________ |
@@ -34,7 +30,7 @@ The source defaults below are examples, not measurements of the assembled robot.
 
 Positive outlet offsets move forward in the robot's current heading; negative values reverse. At the final rightward leg, a positive beam lane shift moves up in the field image, and a negative value moves down. The final beam release is at one pose, so both mounts must align their loads from that same pose.
 
-Measure travel speed at the configured PWM with the robot loaded. A nominal 500 RPM motor speed does not determine millimetres per second without wheel diameter and actual loaded speed. Tune left turns with both beams loaded and enough room for their swept area.
+Measure travel speed at the configured PWM with the robot loaded. A nominal 500 RPM motor speed does not determine millimetres per second without wheel diameter and actual loaded speed. Tune left turns with both beams loaded and enough room for their swept area. The 200 mm reading is from the ultrasonic face to the reflecting surface; account for robot overhang and coasting when checking that it actually stops before contact.
 
 ## Physical run record
 

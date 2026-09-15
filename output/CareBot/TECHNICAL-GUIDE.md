@@ -10,14 +10,14 @@ The sketch uses a common 30-pin ESP32-WROOM-32 DevKit, an L298N module, a PCA968
 2. Drive down the left side until both rear IR sensors detect the configured transverse black marker. Correct the outlet position into the left-middle delivery area, then open the middle bin containing six kits.
 3. Continue down to the bottom wall and open bin B containing two kits at the bottom left.
 4. Turn left to face right. If necessary, shift up to align the right beam with the top boundary of quarantine, then continue right toward the right wall beside the bottom-right beam area.
-5. Stop at `BEAM_DROP_WALL_MM` from the right wall and command both beam grippers open, letting both beams drop from the same robot position.
+5. Stop when the front ultrasonic reads 20 cm or less from the right wall and command both beam grippers open, letting both beams drop from the same robot position.
 6. Stay stopped with all five servos open. Reset closes the servos before reloading for another run.
 
 The main route has two 90-degree left turns, at the top left and bottom left. Optional lane correction adds a turn out and a turn back. Each kit servo releases a whole preloaded group once; there is no kit counter or individual dispensing mechanism. The sketch uses a gravity flap. A throwing linkage would need different servo positions and motion timing.
 
 On this image, the first horizontal black separator on the left is the entrance to the middle area, not a marker at its centre. The default first-marker setting uses that entrance. Set `MIDDLE_OUTLET_CORRECTION_MM` so the outlet lands inside the middle area; a positive correction moves farther down, and a negative correction reverses up. The continuous vertical black line alone cannot identify the middle stopping point.
 
-The complete kit-and-beam route is enabled. `BEAM_DROP_WALL_MM = 220` is an example wall clearance, just like the kit wall stops; calibrate it on the actual robot. Each servo only opens when delivering. There is no automatic re-closing, beam repositioning, or withdrawal after dropping the beams.
+The complete kit-and-beam route is enabled. All forward legs use one `WALL_STOP_MM = 200` ultrasonic threshold. The robot drives toward each wall while readings exceed 20 cm and stops at the first valid reading of 20 cm or less. Each servo only opens when delivering. There is no automatic re-closing, beam repositioning, or withdrawal after dropping the beams.
 
 ## Wiring
 
@@ -47,7 +47,7 @@ Use the orientation of your latest field image: start at the top right, kits dow
 
 At the final stop, both grippers receive their open commands back-to-back. The robot waits for the beams to drop and remains stopped. There is no separate stop position for each beam and no reverse movement after release.
 
-`BEAM_LANE_SHIFT_MM` can align the approach lane above the bottom-right area before the final drive; its default is zero. `BEAM_DROP_WALL_MM` determines the one final stop measured from the front ultrasonic to the right wall. Both beam mounts must therefore put their loads over the intended landing positions at that same stop. Opening the jaws must leave both beams clear of the robot without requiring it to withdraw. A single opening command cannot correct a bad mounting position or guarantee an upright landing.
+`BEAM_LANE_SHIFT_MM` can align the approach lane above the bottom-right area before the final drive; its default is zero. The 20 cm threshold determines the one final stop measured from the front ultrasonic to the right wall. Both beam mounts must therefore put their loads over the intended landing positions at that same stop. Opening the jaws must leave both beams clear of the robot without requiring it to withdraw. A single opening command cannot correct a bad mounting position or guarantee an upright landing.
 
 ## Calibration
 
@@ -56,16 +56,16 @@ Start with the wheels raised and empty mechanisms. On boot, the driver commands 
 1. Check motor direction using `INVERT_LEFT` and `INVERT_RIGHT`. Adjust `LEFT_TRIM` and `RIGHT_TRIM` for straight travel, then measure forward and reverse millimetres per second at `DRIVE_PWM`.
 2. Measure `TURN_LEFT_MS` and `TURN_RIGHT_MS` for actual 90-degree turns with the full load. The example 580 ms is not a measured turn for your robot.
 3. Adjust `CLOSED_DEG`, `OPEN_DEG`, pulse limits and `RELEASE_MS` with empty flaps first, then the actual 2/6/2 kit loads. The flap stays open after release; reset it only before reloading.
-4. Set wall clearances from the ultrasonic face, accounting for the front beam's overhang and stopping distance. Tune first and final kit outlet corrections to land inside their areas.
+4. Check that stopping at the 20 cm reading leaves physical clearance after accounting for the front beam's overhang and motor coasting. Tune first and final kit outlet corrections to land inside their areas.
 5. Check `BLACK_LEVEL` and `MIDDLE_MARKER_NUMBER`. Both sensors must see clear floor before the marker and then see black together; a continuous longitudinal line under only one sensor does not count. The sensors sample about every 2 ms except during an ultrasonic reading, which can block for 25 ms. Use a crossing speed and marker width that leave time for the 20 ms debounce.
 6. Set `MIDDLE_OUTLET_CORRECTION_MM`. If the outlet is 80 mm ahead of the rear sensor and should drop on the line, begin with approximately -80 mm and adjust for coasting. Zero means the outlet's ahead-of-line position is already the desired drop point. Reverse corrections need a clear path because the IR is not an obstacle detector.
-7. Measure the beam lane and the single final wall clearance. Enter `BEAM_LANE_SHIFT_MM` and `BEAM_DROP_WALL_MM`, and confirm both beams fall clear when the robot stays still.
+7. Measure the beam lane, enter `BEAM_LANE_SHIFT_MM`, and confirm both beams fall clear when the robot stays still at the 20 cm wall stop.
 
-Every travel leg has a timeout. Missing ultrasonic echoes stop travel instead of being treated as open space. Three stationary readings within the configured distance tolerance confirm a wall stop. Overshooting outside that tolerance stops the run instead of authorizing a delivery, but ultrasonic cannot distinguish a wall from another object, so this assumes a clear route with visible walls. Turns and lateral moves remain sensitive to wheel slip and battery level without encoders or a gyro.
+Every travel leg has a timeout. Missing ultrasonic echoes stop travel instead of being treated as open space. Wall approaches move forward continuously until the first valid reading at or below 200 mm; other forward legs also stop if they detect that threshold. Ultrasonic cannot distinguish a wall from another object, and sensing plus motor coasting can make the actual stopping clearance shorter than 20 cm. This assumes a clear route with visible walls. Turns and lateral moves remain sensitive to wheel slip and battery level without encoders or a gyro.
 
 ## API references
 
-Validation: host C++ regression tests passed with warnings treated as errors, including the complete kit-and-beam route, flaps staying open, and stationary beam release. The actual ESP32 build is recorded in `REVIEW.md`. No physical robot testing has been performed.
+Validation: the current sketch passed an ESP32 Dev Module build with warnings enabled. The host C++ regression suite was updated for the 20 cm rule but could not be rerun because this Windows environment has no host C++ compiler. No physical robot testing has been performed.
 
 Motor PWM setup follows [Espressif's Arduino-ESP32 LEDC API](https://docs.espressif.com/projects/arduino-esp32/en/latest/api/ledc.html). Motor control follows the [ST L298 datasheet](https://www.st.com/resource/en/datasheet/l298.pdf). The two motor-enable outputs use ESP32 PWM; the five servos use PCA9685 channels 0 through 4 over I2C. This pin map is not for an ESP32-CAM, C3 or S3.
 
