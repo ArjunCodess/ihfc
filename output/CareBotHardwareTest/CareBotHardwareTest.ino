@@ -13,8 +13,9 @@
     r           IR sensors and START button
     0..9, A..F   Move one PCA9685 channel (A=10, F=15)
     t           Move channels 0 through 15, one at a time
-    !           Arm one short motor test
+    !           Arm one short motor or full-actuator test
     L or R      Test left or right motor forward and reverse (requires !)
+    T           Rerun the automatic servo-and-motor test
     x           Stop motors, disarm tests, and interrupt an active test
 
   A PCA9685 register response does not prove a servo is plugged in or moving.
@@ -39,7 +40,7 @@ constexpr uint8_t MOTOR_IN[2][2] = {{25, 26}, {27, 14}};
 constexpr uint8_t MOTOR_EN[2] = {33, 17};
 constexpr bool MOTOR_INVERT[2] = {false, true};
 constexpr uint8_t BLACK_LEVEL = LOW;
-constexpr uint8_t MOTOR_TEST_PWM = 100;
+constexpr uint8_t MOTOR_TEST_PWM = 145;
 constexpr uint32_t MOTOR_TEST_MS = 300;
 constexpr uint32_t ULTRA_TIMEOUT_US = 25000;
 constexpr uint32_t REPORT_INTERVAL_MS = 2000;
@@ -51,6 +52,7 @@ Adafruit_PWMServoDriver pca(PCA_ADDRESS);
 bool pcaReady = false;
 bool motorPwmReady[2] = {false, false};
 bool motorTestArmed = false;
+bool testInterrupted = false;
 uint32_t lastReportMs = 0;
 
 void prefix(const char *topic) {
@@ -192,6 +194,7 @@ bool waitWithStop(uint32_t durationMs) {
     while (Serial.available()) {
       char command = Serial.read();
       if (command == 'x' || command == 'X') {
+        testInterrupted = true;
         motorTestArmed = false;
         motorsOff();
         prefix("STOP"); Serial.println("test_interrupted motors_off=1");
@@ -249,19 +252,19 @@ bool setMotor(uint8_t side, bool forward) {
   return ledcWrite(MOTOR_EN[side], MOTOR_TEST_PWM);
 }
 
-void testMotor(uint8_t side) {
-  if (!motorTestArmed || side >= 2 || !motorPwmReady[side]) {
-    prefix("MOTOR"); Serial.println("test_refused arm_with_exclamation_mark_first=1");
-    return;
+bool runMotorCycle(uint8_t side) {
+  if (side >= 2 || !motorPwmReady[side]) {
+    motorsOff();
+    prefix("MOTOR"); Serial.println("status=pwm_not_ready");
+    return false;
   }
-  motorTestArmed = false;
   motorsOff();
   for (unsigned direction = 0; direction < 2; ++direction) {
     bool forward = direction == 0;
     if (!setMotor(side, forward)) {
       motorsOff();
       prefix("MOTOR"); Serial.println("status=pwm_or_gpio_command_failed");
-      return;
+      return false;
     }
     prefix("MOTOR");
     Serial.print("side="); Serial.print(side == 0 ? "LEFT" : "RIGHT");
@@ -270,11 +273,60 @@ void testMotor(uint8_t side) {
     Serial.print(" commanded_pwm="); Serial.print(MOTOR_TEST_PWM);
     Serial.print(" duration_ms="); Serial.print(MOTOR_TEST_MS);
     Serial.println(" rotation=unmeasured");
-    if (!waitWithStop(MOTOR_TEST_MS)) return;
+    logMotorCommands();
+    if (!waitWithStop(MOTOR_TEST_MS)) return false;
     motorsOff();
-    if (!waitWithStop(300)) return;
+    if (!waitWithStop(300)) return false;
   }
   prefix("MOTOR"); Serial.println("test_end motors_off=1 observe_wheel_motion_manually=1");
+  return true;
+}
+
+void testMotor(uint8_t side) {
+  if (!motorTestArmed) {
+    prefix("MOTOR"); Serial.println("test_refused arm_with_exclamation_mark_first=1");
+    return;
+  }
+  motorTestArmed = false;
+  runMotorCycle(side);
+}
+
+void testAllActuators() {
+  motorTestArmed = false;
+  testInterrupted = false;
+  motorsOff();
+  prefix("ALL_TEST"); Serial.println("test_begin servos_0_to_15_then_both_motors=1");
+  bool servoCommandsOk = true, motorCommandsOk = true;
+  for (uint8_t channel = 0; channel < 16; ++channel) {
+    if (!testServo(channel)) {
+      motorsOff();
+      servoCommandsOk = false;
+      if (testInterrupted) {
+        prefix("ALL_TEST"); Serial.println("test_interrupted_during_servo_sweep=1 motors_off=1");
+        return;
+      }
+      prefix("ALL_TEST"); Serial.println("servo_sweep_failed_continuing_to_motor_tests=1");
+      break;
+    }
+  }
+  for (uint8_t side = 0; side < 2; ++side) {
+    if (!runMotorCycle(side)) {
+      motorsOff();
+      motorCommandsOk = false;
+      if (testInterrupted) {
+        prefix("ALL_TEST"); Serial.println("test_interrupted_during_motor_test=1 motors_off=1");
+        return;
+      }
+      prefix("ALL_TEST"); Serial.println("motor_test_failed_continuing_to_other_side=1");
+    }
+  }
+  motorsOff();
+  prefix("ALL_TEST");
+  Serial.print("test_end servo_command_status=");
+  Serial.print(servoCommandsOk ? "PASS" : "ERROR");
+  Serial.print(" motor_command_status=");
+  Serial.print(motorCommandsOk ? "PASS" : "ERROR");
+  Serial.println(" motors_off=1 physical_motion=unmeasured");
 }
 
 int channelFromCommand(char command) {
@@ -285,7 +337,9 @@ int channelFromCommand(char command) {
 
 void printHelp() {
   prefix("HELP"); Serial.println("? help | b board | i I2C | p PCA | u ultrasonic | r IR+START");
-  prefix("HELP"); Serial.println("0..9,A..F one servo | t all 16 servos | ! arm motor | L/R motor | x stop");
+  prefix("HELP"); Serial.println("All servos and both motors test automatically after boot; T reruns the full test.");
+  prefix("HELP"); Serial.println("0..9,A..F one servo | t all 16 servos");
+  prefix("HELP"); Serial.println("! then L/R one motor | x stop. Raise wheels before motor tests.");
   prefix("HELP"); Serial.println("Inputs and PCA registers report every 2 seconds. Motors are off by default.");
 }
 
@@ -332,6 +386,9 @@ void setup() {
   printHelp();
   reportEverything();
   lastReportMs = millis();
+  testAllActuators();
+  reportEverything();
+  lastReportMs = millis();
 }
 
 void loop() {
@@ -347,12 +404,15 @@ void loop() {
       testServo(uint8_t(channel));
     } else if (command == 't') {
       for (uint8_t ch = 0; ch < 16; ++ch) if (!testServo(ch)) break;
+    } else if (command == 'T') {
+      testAllActuators();
     } else if (command == '!') {
       motorTestArmed = true;
-      prefix("MOTOR"); Serial.println("armed=1 send_L_or_R_with_wheels_raised=1");
+      prefix("MOTOR"); Serial.println("armed=1 send_L_R_or_T_with_wheels_raised=1");
     } else if (command == 'L' || command == 'R') {
       testMotor(command == 'L' ? 0 : 1);
     } else if (command == 'x' || command == 'X') {
+      testInterrupted = true;
       motorTestArmed = false;
       motorsOff();
       prefix("STOP"); Serial.println("motors_off=1 tests_disarmed=1");
