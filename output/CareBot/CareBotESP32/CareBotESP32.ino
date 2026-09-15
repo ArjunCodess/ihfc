@@ -11,7 +11,7 @@
 #include <Wire.h>
 #include <math.h>
 #if !defined(CONFIG_IDF_TARGET_ESP32)
-#error "Select a classic ESP32 target such as DOIT ESP32 DEVKIT V1."
+#error "Select a classic ESP32 target such as fESP32 Dev Module."
 #endif
 
 // L298N: OUT1/2 = left motor, OUT3/4 = right motor.
