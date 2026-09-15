@@ -66,6 +66,6 @@ GPIO35 has no internal pull-up. An open-collector IR output may need an external
 
 Leave the PCA9685 address jumpers open for address `0x40`. Match each three-wire servo plug to the board markings: signal to the channel signal pin, positive to V+, and ground to GND. Do not connect servo power to ESP32 3.3 V or to PCA9685 VCC; VCC powers only the driver's logic. Verify plug polarity against the exact driver board before applying power.
 
-On boot/reset, the code detects the driver, configures it for 50 Hz, and commands all five servos closed. During the mission, it only opens them; it does not close them again until reset. A missing PCA9685 or failed I2C command is logged at 115200 baud and prevents the mission from starting.
+On boot/reset, the code detects the driver, configures it for 50 Hz, and commands channels 0 through 4 closed. Only two servos are currently connected, so confirm their actual socket numbers against the table above. With empty mechanisms, send `0` through `9` or `A` through `F` at 115200 baud to test one PCA9685 socket while the motors remain off. `A` means channel 10 and `F` means channel 15. During the mission, the configured servos only open when their delivery step is reached; reset closes them again. A missing PCA9685 or failed I2C command prevents the mission from starting.
 
 Motor direction flags in the source compensate for mirrored mounting. Check the wheel directions with the chassis raised before placing it on the field.

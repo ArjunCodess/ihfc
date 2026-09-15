@@ -8,6 +8,10 @@ if (-not $cli) {
     throw 'Install Arduino CLI or Arduino IDE, or compile CareBotESP32.ino in Arduino IDE. See START-HERE.md.'
 }
 $buildPath = Join-Path ([System.IO.Path]::GetTempPath()) ('carebot-build-' + [guid]::NewGuid().ToString('N'))
-& $cli compile --fqbn esp32:esp32:esp32doit-devkit-v1 --warnings all --build-path $buildPath (Join-Path $PSScriptRoot 'CareBotESP32')
-if ($LASTEXITCODE -ne 0) { throw 'ESP32 compilation failed. Check that esp32:esp32 3.3.5 is installed.' }
+$libraryPath = Join-Path $env:USERPROFILE 'Documents/Arduino/libraries'
+if (-not (Test-Path -LiteralPath (Join-Path $libraryPath 'Adafruit_PWM_Servo_Driver_Library'))) {
+    throw 'Install Adafruit PWM Servo Driver Library and Adafruit BusIO in Documents/Arduino/libraries.'
+}
+& $cli compile --fqbn esp32:esp32:esp32 --libraries $libraryPath --warnings all --build-path $buildPath (Join-Path $PSScriptRoot 'CareBotESP32')
+if ($LASTEXITCODE -ne 0) { throw 'ESP32 compilation failed. Check the compiler output above.' }
 Write-Output "Build succeeded. Output: $buildPath"

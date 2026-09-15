@@ -1,17 +1,18 @@
 /* CareBot: three preloaded flap bins (2, 6, 2) and two beam grippers.
-   Target: DOIT ESP32 DEVKIT V1, Arduino-ESP32 3.x, L298N.
+   Target: common 30-pin ESP32-WROOM-32 DevKit, Arduino-ESP32 3.x, L298N.
    Drive pair: dual-shaft 12 V, 500 RPM DC geared motors.
    Servos: PCA9685 at I2C address 0x40, channels 0..4.
    Motor stall current and loaded travel speed still require measurement.
-   No external servo library required. See ../README.md before wiring/loading.
-   Serial 115200: timestamped logger; s = start once, x = stop.
+   Requires Adafruit PWM Servo Driver Library and Adafruit BusIO.
+   Serial 115200: 0..9/A..F = stationary servo test, s = start, x = stop.
    All distances/timings below require calibration on the actual robot.
 */
 #include <Arduino.h>
 #include <Wire.h>
+#include <Adafruit_PWMServoDriver.h>
 #include <math.h>
 #if !defined(CONFIG_IDF_TARGET_ESP32)
-#error "Select a classic ESP32 target such as fESP32 Dev Module."
+#error "Select a classic 30-pin ESP32-WROOM-32 Dev Module."
 #endif
 
 // L298N: OUT1/2 = left motor, OUT3/4 = right motor.
@@ -24,9 +25,10 @@ constexpr uint8_t START_PIN = 32; // one start button to GND; no stop button
 constexpr uint8_t I2C_SDA_PIN = 21, I2C_SCL_PIN = 22;
 constexpr uint8_t PCA9685_ADDRESS = 0x40;
 constexpr uint8_t SERVO_CHANNELS[] = {0, 1, 2, 3, 4};
-constexpr uint8_t PCA9685_MODE1 = 0x00, PCA9685_PRESCALE = 0xfe;
-constexpr uint8_t PCA9685_LED0_ON_L = 0x06;
 constexpr uint8_t PCA9685_50HZ_PRESCALE = 121;
+Adafruit_PWMServoDriver pwm(PCA9685_ADDRESS);
+constexpr uint16_t SERVO_TEST_LOW_TICKS = 225;
+constexpr uint16_t SERVO_TEST_CENTER_TICKS = 375;
 constexpr float MOTOR_RATED_VOLTAGE = 12.0f;
 constexpr unsigned MOTOR_RATED_RPM = 500;
 // Servo indices: small A, six-kit bin, small B, right beam, front beam.
@@ -174,13 +176,6 @@ void straight(int pwm) {
         sign * constrain(abs(pwm) + RIGHT_TRIM, 0, 255));
 }
 
-bool pcaWriteRegister(uint8_t registerAddress, uint8_t value) {
-  Wire.beginTransmission(PCA9685_ADDRESS);
-  Wire.write(registerAddress);
-  Wire.write(value);
-  return Wire.endTransmission() == 0;
-}
-
 bool pcaPresent() {
   Wire.beginTransmission(PCA9685_ADDRESS);
   return Wire.endTransmission() == 0;
@@ -190,28 +185,18 @@ bool initializeServoDriver() {
   servoDriverReady = false;
   Wire.begin(I2C_SDA_PIN, I2C_SCL_PIN);
   if (!pcaPresent()) return fail("PCA9685 not detected at I2C address 0x40.");
-  if (!pcaWriteRegister(PCA9685_MODE1, 0x10) ||
-      !pcaWriteRegister(PCA9685_PRESCALE, PCA9685_50HZ_PRESCALE) ||
-      !pcaWriteRegister(PCA9685_MODE1, 0x20))
-    return fail("PCA9685 50 Hz initialization failed.");
-  delay(5);
-  if (!pcaWriteRegister(PCA9685_MODE1, 0xa0))
-    return fail("PCA9685 restart failed.");
+  if (!pwm.begin()) return fail("PCA9685 library initialization failed.");
+  pwm.setPWMFreq(50);
+  if (!pcaPresent() || pwm.readPrescale() != PCA9685_50HZ_PRESCALE)
+    return fail("PCA9685 50 Hz prescale was not confirmed.");
   servoDriverReady = true;
-  logLine("INFO", "PCA9685 detected at 0x40 and configured for 50 Hz.");
+  logLine("INFO", "PCA9685 detected at 0x40; Adafruit driver set to 50 Hz.");
   return true;
 }
 
 bool pcaWriteServo(unsigned channel, uint16_t offTick) {
   if (channel >= 16 || offTick > 4095) return false;
-  uint8_t firstRegister = PCA9685_LED0_ON_L + 4 * channel;
-  Wire.beginTransmission(PCA9685_ADDRESS);
-  Wire.write(firstRegister);
-  Wire.write(uint8_t(0));
-  Wire.write(uint8_t(0));
-  Wire.write(uint8_t(offTick & 0xff));
-  Wire.write(uint8_t((offTick >> 8) & 0x0f));
-  return Wire.endTransmission() == 0;
+  return pwm.setPWM(channel, 0, offTick) == 0;
 }
 
 bool servoAngle(unsigned index, int degrees) {
@@ -225,6 +210,34 @@ bool servoAngle(unsigned index, int degrees) {
   if (!pcaWriteServo(SERVO_CHANNELS[index], offTick))
     return fail("PCA9685 servo channel write failed.");
   return true;
+}
+
+// Serial 0..9 or A..F tests one PCA9685 socket while the drive motors stay off.
+// Use this with empty mechanisms; it does not start the mission.
+bool testServoChannel(unsigned channel) {
+  if (channel >= 16 || !servoDriverReady) return false;
+  stopMotors();
+  logPrefix("INFO"); Serial.print("Servo test channel "); Serial.println(channel);
+  if (!pcaWriteServo(channel, SERVO_TEST_CENTER_TICKS) ||
+      !waitChecked(600) ||
+      !pcaWriteServo(channel, SERVO_TEST_LOW_TICKS) ||
+      !waitChecked(600) ||
+      !pcaWriteServo(channel, SERVO_TEST_CENTER_TICKS) ||
+      !waitChecked(600))
+    return aborted ? false : fail("Servo test I2C write failed.");
+  // Restore the mission's closed position if this is a configured channel.
+  for (unsigned i = 0; i < 5; ++i)
+    if (SERVO_CHANNELS[i] == channel && !servoAngle(i, CLOSED_DEG[i])) return false;
+  stopMotors();
+  logLine("INFO", "Servo test finished; motors remained off.");
+  return true;
+}
+
+int servoTestChannelFromCommand(char command) {
+  if (command >= '0' && command <= '9') return command - '0';
+  if (command >= 'A' && command <= 'F') return command - 'A' + 10;
+  if (command >= 'a' && command <= 'f') return command - 'a' + 10;
+  return -1;
 }
 
 float rangeMm() {
@@ -510,7 +523,8 @@ void setup() {
   Serial.print(" V, "); Serial.print(MOTOR_RATED_RPM);
   Serial.println(" RPM through L298N.");
   if (!startupSelfCheck()) return;
-  logLine("INFO", "Ready. Load bins 2/6/2. Press START or send s. x stops.");
+  logLine("INFO", "Ready. Send 0..9 or A..F to test one servo channel with motors off.");
+  logLine("INFO", "Load bins 2/6/2. Press START or send s. x stops.");
 }
 
 void loop() {
@@ -526,6 +540,13 @@ void loop() {
   while (Serial.available()) {
     char c = Serial.read();
     if (c == 'x' || c == 'X') { fail("Serial stop."); return; }
+    int testChannel = servoTestChannelFromCommand(c);
+    if (testChannel >= 0) {
+      start = false;
+      startArmed = false; // require a fresh button release after a servo test
+      if (!testServoChannel(unsigned(testChannel))) return;
+      continue;
+    }
     if (c == 's' || c == 'S') {
       logLine("INFO", "Serial start command received.");
       start = true;

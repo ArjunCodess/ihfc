@@ -2,7 +2,7 @@
 
 Open `CareBotESP32/CareBotESP32.ino` in Arduino IDE. This implements the new route in your message, including the photographed chassis with a transverse front beam and a lengthwise right beam. The old document's Uno, camera and 45-degree branch are not used.
 
-The sketch uses a DOIT ESP32 DEVKIT V1, an L298N module, a PCA9685 servo driver at I2C address `0x40`, and two dual-shaft 12 V, 500 RPM DC geared motors. Confirm that the L298N can handle each motor's measured stall current. There is one start button and no physical stop button; Serial x remains available while connected. Select **DOIT ESP32 DEVKIT V1**, install **esp32 by Espressif Systems 3.x**, and use Serial Monitor at **115200 baud**. The firmware talks to the PCA9685 through the built-in `Wire` library, so no extra servo library is needed.
+The sketch uses a common 30-pin ESP32-WROOM-32 DevKit, an L298N module, a PCA9685 servo driver at I2C address `0x40`, and two dual-shaft 12 V, 500 RPM DC geared motors. Confirm that the L298N can handle each motor's measured stall current. There is one start button and no physical stop button; Serial x remains available while connected. Select **ESP32 Dev Module** or the exact matching DevKit entry, install **esp32 by Espressif Systems 3.x**, and use Serial Monitor at **115200 baud**. Install **Adafruit PWM Servo Driver Library** and **Adafruit BusIO**. The firmware uses the same Adafruit driver calls as the working servo test.
 
 ## What it does
 
@@ -33,6 +33,8 @@ Check that the L298N module's continuous-current and startup/stall-current capab
 
 Open Serial Monitor at **115200 baud** before resetting the ESP32. Messages contain a timestamp and severity, for example `[912 ms] [INFO] Startup self-check passed.` Every reported `ERROR` stops both L298N enable outputs and prevents the mission from continuing.
 
+With empty mechanisms, send `0` through `9` or `A` through `F` to test that channel's servo while both motor outputs stay off. The command returns a configured mission channel to its closed position. `s` starts the full route, and `x` stops it. A PCA9685 acknowledgment still cannot confirm that a servo is plugged in or powered.
+
 At startup, the sketch checks for duplicate GPIO assignments, initializes both motor PWM channels, detects and configures the PCA9685 for 50 Hz, commands all five driver channels closed, requires one valid ultrasonic reading from 20 to 4000 mm, rechecks the PCA9685 response, reports both IR input states, and reports whether START is held. A missing driver or failed I2C write is logged as an `ERROR`, both motor enables are disabled, and the mission cannot start. Place a solid target within the ultrasonic sensor's range before resetting the board.
 
 The L298N has no feedback connection, so the ESP32 cannot confirm motor rotation, motor current, or whether driver power is present. Standard positional servos also provide no position feedback. The logger reports these limits as `WARN` messages. Test motor direction with the chassis raised and confirm servo movement visually.
@@ -49,7 +51,7 @@ At the final stop, both grippers receive their open commands back-to-back. The r
 
 ## Calibration
 
-Start with the wheels raised and empty mechanisms. On boot, all five servos move to their closed positions; keep fingers clear and load afterward. Release START after power-up, then hold it for at least 40 ms, or send `s`, to begin. A button held during power-up or a brief contact bounce does not start the robot. Send `x` over the connected Serial Monitor to stop; restart requires a reset. An accessible main power switch can disconnect the battery when the robot is running without a computer. The Serial stop command halts the motors and leaves the grippers holding their current positions. It is a software stop, not a power disconnect.
+Start with the wheels raised and empty mechanisms. On boot, the driver commands channels 0 through 4 to their closed positions; only connected and powered servos can move. Keep fingers clear and load afterward. Release START after power-up, then hold it for at least 40 ms, or send `s`, to begin. A button held during power-up or a brief contact bounce does not start the robot. Send `x` over the connected Serial Monitor to stop; restart requires a reset. An accessible main power switch can disconnect the battery when the robot is running without a computer. The Serial stop command halts the motors and leaves the grippers holding their current positions. It is a software stop, not a power disconnect.
 
 1. Check motor direction using `INVERT_LEFT` and `INVERT_RIGHT`. Adjust `LEFT_TRIM` and `RIGHT_TRIM` for straight travel, then measure forward and reverse millimetres per second at `DRIVE_PWM`.
 2. Measure `TURN_LEFT_MS` and `TURN_RIGHT_MS` for actual 90-degree turns with the full load. The example 580 ms is not a measured turn for your robot.

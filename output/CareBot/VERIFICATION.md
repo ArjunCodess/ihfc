@@ -1,21 +1,21 @@
 # Verification evidence
 
-This pack contains the current L298N and PCA9685 sketch with open-only deliveries and timestamped Serial logging. Both beam grippers open at one final stop; the robot does not reverse or close the servos after release.
+The sketch keeps the L298N route and open-only deliveries. It now uses Adafruit PWM Servo Driver Library for the PCA9685 and has stationary serial tests for individual servo channels. Both beam grippers open at one final stop; the robot does not reverse or close the servos after release.
 
 ## Actual ESP32 compilation
 
-- Board identifier: `esp32:esp32:esp32doit-devkit-v1`, DOIT ESP32 DEVKIT V1.
-- Core: Espressif Arduino-ESP32 **3.3.5**.
+- Board identifier: `esp32:esp32:esp32`, ESP32 Dev Module for a classic ESP32-WROOM-32 DevKit.
+- Core: Espressif Arduino-ESP32 **3.3.11**.
 - Warnings: all enabled; no sketch warnings reported.
-- Program storage: **310,587 bytes**, 23% of the selected partition.
-- Static RAM: **23,712 bytes**, 7%.
-- Saved output: `evidence/esp32-compile.log`.
+- Program storage: **314,647 bytes**, 24% of the selected partition.
+- Static RAM: **23,824 bytes**, 7%.
+- The older output in `evidence/esp32-compile.log` describes the previous DOIT build.
 
-This was a real board-toolchain compilation of the current L298N and PCA9685 revision. The same source also passes a warning-clean C++17 compile against the host harness. The bundle has no compiled firmware binary because the movement and drop settings still need calibration; build your calibrated source before uploading.
+This was a real board-toolchain compilation of the current sketch using the installed Adafruit libraries. The bundle has no uploaded firmware binary because the movement and drop settings still need calibration; build your calibrated source before uploading.
 
 ## Portable host regression tests
 
-`tests/test.cpp` includes the actual packaged sketch using a relative path. `tests/Arduino.h` provides simulated GPIO, time, ultrasonic echoes and Serial input, while `tests/Wire.h` simulates the PCA9685 I2C traffic. Those headers are deliberately outside the sketch folder; they are only for host tests and must not be copied into the Arduino sketch.
+`tests/test.cpp` includes the packaged sketch using a relative path. `tests/Arduino.h` provides simulated GPIO, time, ultrasonic echoes and Serial input. `tests/Wire.h` and `tests/Adafruit_PWMServoDriver.h` simulate the PCA9685 traffic. Those headers are deliberately outside the sketch folder; they are only for host tests and must not be copied into the Arduino sketch.
 
 With a C++17-capable `g++` on Windows, run `tests/run-tests.ps1`. On a system with a compatible compiler, the equivalent commands from this folder are:
 
@@ -28,7 +28,7 @@ Coverage includes PCA9685 detection, all five channel writes, I2C failure, both 
 
 The startup tests cover a successful self-check and refusal to arm when the PCA9685 is missing or the ultrasonic sensor returns no echo. Marker tests require both rear IR sensors to report black and reject a reading from only one sensor. All faults use the same ERROR logger and stop both motor-enable outputs.
 
-The packaged tests were re-run after making the paths portable. Their output is saved in `evidence/host-tests.log`.
+The older host run in `evidence/host-tests.log` covers the previous revision. The current host test source includes stationary servo tests and a held-start-button check, but this Windows session has no `g++` on PATH, so that host suite has not been rerun. The actual ESP32 compilation above passed.
 
 ## What this evidence does not establish
 

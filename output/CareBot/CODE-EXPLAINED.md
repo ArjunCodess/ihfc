@@ -27,6 +27,7 @@ The left-side separator marks entry to the middle area. A configurable offset ac
 | `drive()` / `setMotor()` | Set L298N direction inputs and ENA/ENB PWM duty. |
 | `initializeServoDriver()` | Detects the PCA9685 at `0x40` and configures its shared output frequency to 50 Hz. |
 | `servoAngle()` | Converts a requested angle to a pulse count and writes the assigned PCA9685 channel. |
+| `testServoChannel()` | Tests one PCA9685 socket from Serial with both motor enables off. |
 | `releaseLoad()` | Opens one bin or gripper once and leaves it open. The route uses it for the three bins. |
 | `releaseBeams()` | Opens both grippers at the same stationary pose. |
 | `fail()` / `checkStop()` | Stop the motors on a fault or a connected Serial `x` command. |
@@ -36,6 +37,8 @@ The left-side separator marks entry to the middle area. A configurable offset ac
 ## What the five servos do
 
 All servo signals come from one PCA9685 board over ESP32 GPIO21/SDA and GPIO22/SCL. Channels 0, 1 and 2 open the three complete bins; the program does not count individual kits. Loading those bins with 2, 6 and 2 sets the delivered quantities. Channels 3 and 4 open the right and front beam grippers. Their commands are issued back-to-back, so exact mechanical simultaneity is not assumed.
+
+The mission maps five planned servo functions, but only two servos are connected at present. Send a channel character `0` through `9` or `A` through `F` to test a socket with the motors off. This command moves the selected channel between 225 and 375 PCA9685 ticks and restores its mission closed position if it is one of channels 0 through 4. Use empty mechanisms for this test.
 
 The code records which loads have been released and rejects a repeated release. It does not have sensors to confirm that a bin is empty or that a beam landed upright.
 
