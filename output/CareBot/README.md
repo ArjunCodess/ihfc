@@ -1,5 +1,7 @@
-# CareBot
+# Development and test pack
 
-Open `START-HERE.md` for the file guide, software setup and demonstration preparation. Open `SHOWCASE.html` in a browser for the offline overview.
+This folder contains the guarded development firmware, diagnostics, route simulations and older showcase notes. It is useful for testing, but it is not the single competition program.
 
-Use `WIRING.md` as the single pin and power reference, and `TECHNICAL-GUIDE.md` for route behavior and calibration. The only firmware sketch is `CareBotESP32/CareBotESP32.ino`. Compilation and test evidence is in `VERIFICATION.md`.
+The competition upload is `../MinimalistCareBot/MinimalistCareBot.ino`. Its matching wiring sheet is `../MinimalistCareBot/WIRING.md`. The current submission PDF is `../pdf/Design_Details_Document_ST-77.pdf`.
+
+`CareBotESP32/CareBotESP32.ino` remains useful for startup checks, logging, fault handling and servo tests. `VERIFICATION.md` records software checks for that development version.

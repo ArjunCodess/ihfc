@@ -1,6 +1,8 @@
 # CareBot ESP32 code
 
-Open `CareBotESP32/CareBotESP32.ino` in Arduino IDE. This implements the new route in your message, including the photographed chassis with a transverse front beam and a lengthwise right beam. The old document's Uno, camera and 45-degree branch are not used.
+This guide describes the development and fault-checking sketch. The competition upload is `../MinimalistCareBot/MinimalistCareBot.ino`.
+
+Open `CareBotESP32/CareBotESP32.ino` in Arduino IDE. This development version follows the earlier route with a transverse front beam and a lengthwise right beam. The old document's Uno, camera and 45-degree branch are not used.
 
 The sketch uses a common 30-pin ESP32-WROOM-32 DevKit, an L298N module, a PCA9685 servo driver at I2C address `0x40`, and two dual-shaft 12 V, 500 RPM DC geared motors. Confirm that the L298N can handle each motor's measured stall current. There is one start button and no physical stop button; Serial x remains available while connected. Select **ESP32 Dev Module** or the exact matching DevKit entry, install **esp32 by Espressif Systems 3.x**, and use Serial Monitor at **115200 baud**. Install **Adafruit PWM Servo Driver Library** and **Adafruit BusIO**. The firmware uses the same Adafruit driver calls as the working servo test.
 
@@ -78,11 +80,11 @@ The Amazon listing and Thingiverse model could not be read well enough to verify
 
 For the documented 60 × 20 mm beam cross-section, jaws gripping across the narrow faces need to open beyond 20 mm with clearance. Grip near the beam's lengthwise centre and use broad padded contacts to resist rotation. A retaining lip or shaped jaw can carry weight without relying only on friction, but it must withdraw completely when opened so the beam can fall free. Test one mechanism with the actual beam, through turns and release, before duplicating it.
 
-Current electronics: one DOIT ESP32 DEVKIT V1, one L298N module, one PCA9685 16-channel servo driver, two dual-shaft 12 V, 500 RPM DC geared motors, five servos, one front ultrasonic sensor, two rear downward IR sensors, and one start button. Add battery and suitable regulated supplies, wiring and a main power switch. No separate stop pushbutton is used.
+Current electronics: one DOIT ESP32 DEVKIT V1, one L298N module, one PCA9685 16-channel servo driver, four 12 V geared motors, five servos, one front ultrasonic sensor, two rear downward IR sensors, and one start button. Add battery and suitable regulated supplies, wiring and a main power switch. Confirm that the motor driver can carry the combined current of two motors on each channel.
 
 ## Remaining build items
 
-Keep five positional servos total, one PCA9685 servo driver, three flap mechanisms, two beam gripper mechanisms, one DOIT ESP32 DEVKIT V1, one front ultrasonic sensor, two rear IR sensors and one start button. Add two wheels matching the motor shafts, one caster, two motor mounts and the chassis. The second shaft on each motor does not require a second motor driver or an additional drive wheel.
+Keep five positional servos total, one PCA9685 servo driver, three flap mechanisms, two beam release mechanisms, one DOIT ESP32 DEVKIT V1, one front ultrasonic sensor, two rear IR sensors and one start button. The official photographs show four wheels and four geared motors. Wire the two motors on each side as one controlled pair only after confirming that the motor driver can carry their combined startup and stall current.
 
 The remaining power parts are a motor-compatible battery pack and matching charger, regulated power for the ESP32 and five servos, a main power switch, and suitable connectors and wiring. Final regulator current depends on the servo models and loads. Include the ultrasonic echo divider and common ground described above. Do not power the servos through the ESP32 board.
 

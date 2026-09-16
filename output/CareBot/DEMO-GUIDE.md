@@ -6,14 +6,14 @@
 - Complete the measured entries in `CALIBRATION.md` and enter them in the sketch. Upload that calibrated source and keep a copy of it with your records.
 - Check the motors' voltage/current requirements, power wiring, wheel directions and loaded turning clearance.
 - Test each flap with its actual load and each gripper with its beam. Both beams must fall clear while the robot remains still.
-- Check that the front beam does not obstruct ultrasonic readings and that both rear IR sensors distinguish black from the floor.
+- Check that the front hardware does not obstruct ultrasonic readings and that both rear IR sensors distinguish black from the floor.
 - Run the full route on the physical field. Record successful and failed attempts; the supplied test logs are software tests, not evidence of a physical run.
 
 ## Live run
 
 1. Open `SHOWCASE.html` on the display. Keep Arduino IDE ready with the actual sketch if someone asks about the code.
 2. With the mechanisms clear, power on or reset. Wait for the servos to close and release the START button if it was held.
-3. Load 2 kits into bin A, 6 into the middle bin, and 2 into bin B. Load the front and right beams into their grippers.
+3. Load 2 kits into bin A, 6 into the middle bin, and 2 into bin B. Load the first and second beams into their holders.
 4. Place the robot at the top right, facing left, with the calibrated starting alignment.
 5. Press START. A USB-connected demonstration can alternatively use Serial `s` at 115200 baud.
 6. Let the robot complete the 2–6–2 route and open both beam grippers. It finishes stationary with the flaps and grippers open.

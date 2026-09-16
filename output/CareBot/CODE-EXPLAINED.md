@@ -36,7 +36,7 @@ The left-side separator marks entry to the middle area. A configurable offset ac
 
 ## What the five servos do
 
-All servo signals come from one PCA9685 board over ESP32 GPIO21/SDA and GPIO22/SCL. Channels 0, 1 and 2 open the three complete bins; the program does not count individual kits. Loading those bins with 2, 6 and 2 sets the delivered quantities. Channels 3 and 4 open the right and front beam grippers. Their commands are issued back-to-back, so exact mechanical simultaneity is not assumed.
+All servo signals come from one PCA9685 board over ESP32 GPIO21/SDA and GPIO22/SCL. Channels 0, 1 and 2 open the three complete bins; the program does not count individual kits. Loading those bins with 2, 6 and 2 sets the delivered quantities. Channels 3 and 4 open the first and second beam releases. Their commands are issued back-to-back, so exact mechanical simultaneity is not assumed.
 
 The mission maps five planned servo functions, but only two servos are connected at present. Send a channel character `0` through `9` or `A` through `F` to test a socket with the motors off. This command moves the selected channel between 225 and 375 PCA9685 ticks and restores its mission closed position if it is one of channels 0 through 4. Use empty mechanisms for this test.
 
