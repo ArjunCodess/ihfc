@@ -10,7 +10,7 @@
     i           Scan the I2C bus
     p           PCA9685 status and planned channel registers
     u           One ultrasonic reading
-    r           IR sensors and START button
+    r           Front IR sensors
     0..9, A..F   Move one PCA9685 channel (A=10, F=15)
     t           Move channels 0 through 15, one at a time
     !           Arm one short motor or full-actuator test
@@ -35,7 +35,6 @@ constexpr uint8_t PCA_ADDRESS = 0x40;
 constexpr uint8_t SDA_PIN = 21, SCL_PIN = 22;
 constexpr uint8_t ULTRA_TRIG_PIN = 23, ULTRA_ECHO_PIN = 34;
 constexpr uint8_t LEFT_IR_PIN = 35, RIGHT_IR_PIN = 16;
-constexpr uint8_t START_PIN = 32;
 constexpr uint8_t MOTOR_IN[2][2] = {{25, 26}, {27, 14}};
 constexpr uint8_t MOTOR_EN[2] = {33, 17};
 constexpr bool MOTOR_INVERT[2] = {false, true};
@@ -131,14 +130,11 @@ void logUltrasonic() {
 void logInputs() {
   int left = digitalRead(LEFT_IR_PIN);
   int right = digitalRead(RIGHT_IR_PIN);
-  int start = digitalRead(START_PIN);
   prefix("INPUT");
-  Serial.print("left_ir_gpio35_raw="); Serial.print(left);
+  Serial.print("front_left_ir_gpio35_raw="); Serial.print(left);
   Serial.print(" left_ir="); Serial.print(left == BLACK_LEVEL ? "BLACK" : "CLEAR");
-  Serial.print(" right_ir_gpio16_raw="); Serial.print(right);
-  Serial.print(" right_ir="); Serial.print(right == BLACK_LEVEL ? "BLACK" : "CLEAR");
-  Serial.print(" start_gpio32_raw="); Serial.print(start);
-  Serial.print(" start="); Serial.println(start == LOW ? "PRESSED" : "RELEASED");
+  Serial.print(" front_right_ir_gpio16_raw="); Serial.print(right);
+  Serial.print(" right_ir="); Serial.println(right == BLACK_LEVEL ? "BLACK" : "CLEAR");
 }
 
 void logPca() {
@@ -336,7 +332,7 @@ int channelFromCommand(char command) {
 }
 
 void printHelp() {
-  prefix("HELP"); Serial.println("? help | b board | i I2C | p PCA | u ultrasonic | r IR+START");
+  prefix("HELP"); Serial.println("? help | b board | i I2C | p PCA | u ultrasonic | r front IR sensors");
   prefix("HELP"); Serial.println("All servos and both motors test automatically after boot; T reruns the full test.");
   prefix("HELP"); Serial.println("0..9,A..F one servo | t all 16 servos");
   prefix("HELP"); Serial.println("! then L/R one motor | x stop. Raise wheels before motor tests.");
@@ -357,7 +353,6 @@ void setup() {
   pinMode(ULTRA_ECHO_PIN, INPUT);
   pinMode(LEFT_IR_PIN, INPUT);
   pinMode(RIGHT_IR_PIN, INPUT);
-  pinMode(START_PIN, INPUT_PULLUP);
   for (unsigned side = 0; side < 2; ++side) {
     motorPwmReady[side] = ledcAttachChannel(MOTOR_EN[side], 20000, 8, side);
     if (motorPwmReady[side] && !ledcWrite(MOTOR_EN[side], 0)) {

@@ -4,7 +4,7 @@
    Servos: PCA9685 at I2C address 0x40, channels 0..4.
    Motor stall current and loaded travel speed still require measurement.
    Requires Adafruit PWM Servo Driver Library and Adafruit BusIO.
-   Serial 115200: 0..9/A..F = stationary servo test, s = start, x = stop.
+   The mission starts automatically after power-up checks. Serial x stops it.
    All distances/timings below require calibration on the actual robot.
 */
 #include <Arduino.h>
@@ -20,8 +20,7 @@
 constexpr uint8_t MOTOR_DIRECTION_PINS[] = {25, 26, 27, 14}; // IN1..IN4
 constexpr uint8_t MOTOR_ENABLE_PINS[] = {33, 17}; // ENA, ENB
 constexpr uint8_t TRIG_PIN = 23, ECHO_PIN = 34;
-constexpr uint8_t IR_PINS[] = {35, 16}; // left and right rear sensors
-constexpr uint8_t START_PIN = 32; // one start button to GND; no stop button
+constexpr uint8_t IR_PINS[] = {35, 16}; // left and right front floor sensors
 constexpr uint8_t I2C_SDA_PIN = 21, I2C_SCL_PIN = 22;
 constexpr uint8_t PCA9685_ADDRESS = 0x40;
 constexpr uint8_t SERVO_CHANNELS[] = {0, 1, 2, 3, 4};
@@ -31,15 +30,16 @@ constexpr uint16_t SERVO_TEST_LOW_TICKS = 225;
 constexpr uint16_t SERVO_TEST_CENTER_TICKS = 375;
 constexpr float MOTOR_RATED_VOLTAGE = 12.0f;
 constexpr unsigned MOTOR_RATED_RPM = 500;
-// Servo indices: small A, six-kit bin, small B, right beam, front beam.
-constexpr int CLOSED_DEG[] = {15, 15, 15, 35, 35};
-constexpr int OPEN_DEG[] = {100, 100, 100, 110, 110};
+// Servo indices: 2-bin A, 6-bin, 2-bin B, first beam, second beam.
+// The two MG995 2-bin servos move below rest; the 6-bin servo moves above it.
+constexpr int REST_DEG[] = {90, 90, 90, 35, 35};
+constexpr int RELEASE_DEG[] = {20, 160, 20, 110, 110};
 constexpr uint32_t SERVO_MIN_US = 1000, SERVO_MAX_US = 2000;
 constexpr int BLACK_LEVEL = LOW; // change to HIGH if your module is inverted
 constexpr bool INVERT_LEFT = false, INVERT_RIGHT = true;
 // RPM is not used as wheel speed. Keep these conservative starting values and
 // calibrate them with the loaded robot.
-constexpr int DRIVE_PWM = 145, SLOW_PWM = 100, TURN_PWM = 125;
+constexpr int DRIVE_PWM = 102, SLOW_PWM = 102, TURN_PWM = 125;
 constexpr int LEFT_TRIM = 0, RIGHT_TRIM = 0;
 constexpr uint32_t TURN_LEFT_MS = 580, TURN_RIGHT_MS = 580;
 constexpr float DRIVE_MM_PER_SECOND = 180.0f; // example only; measure at DRIVE_PWM
@@ -49,22 +49,16 @@ constexpr uint32_t LEG_TIMEOUT_MS = 25000, PING_INTERVAL_MS = 65;
 constexpr uint32_t ECHO_TIMEOUT_US = 25000, LINE_STABLE_MS = 20;
 constexpr float WALL_STOP_MM = 200; // one ultrasonic stop threshold for all forward travel
 
-// Start TOP RIGHT facing LEFT. Two route turns: LEFT -> DOWN -> RIGHT.
-// Both route turns are 90-degree left turns; lane corrections add paired turns.
-// Count transverse black markers after clearing the starting marker.
+// Start in the marked starting position and use 90-degree left turns.
+// Count the transverse black marker after clearing the starting marker.
 // On the supplied map, the first left-side cross-line ENTERS the middle zone;
 // it is not its centre. Calibrate the outlet correction for the desired drop.
 constexpr unsigned MIDDLE_MARKER_NUMBER = 1;
-// At rear-IR detection, an outlet ahead of the IR is already past the line.
+// At front-IR detection, an outlet behind the IR has not reached the line yet.
 // Negative means reverse. Example: outlet 80 mm ahead => approximately -80.
 constexpr float MIDDLE_OUTLET_CORRECTION_MM = 0;
 constexpr float FIRST_OUTLET_CORRECTION_MM = 0;
 constexpr float LAST_OUTLET_CORRECTION_MM = 0;
-
-// Final beam drop: stop once, open both grippers, stay stopped.
-// Final leg faces RIGHT/east. Positive lane shift moves UP/north;
-// negative moves DOWN/south. Align the right beam to QZ's TOP boundary.
-constexpr float BEAM_LANE_SHIFT_MM = 0;
 
 static_assert(DRIVE_PWM > 0 && DRIVE_PWM <= 255 && SLOW_PWM > 0 &&
               SLOW_PWM <= DRIVE_PWM && TURN_PWM > 0 && TURN_PWM <= 255,
@@ -82,12 +76,11 @@ static_assert(TURN_LEFT_MS > 0 && TURN_LEFT_MS <= LEG_TIMEOUT_MS &&
 
 bool aborted = false, attempted = false;
 bool motorPwmAttached[2] = {false, false};
-bool startArmed = false, startHeld = false;
 bool startupCheckPassed = false;
 bool servoDriverReady = false;
-uint32_t startPressMs = 0;
 bool released[5] = {false, false, false, false, false};
 uint32_t lastPingMs = 0;
+int lastLeftMotorCommand = 0, lastRightMotorCommand = 0;
 
 void logPrefix(const char *level) {
   Serial.print('['); Serial.print(millis()); Serial.print(" ms] [");
@@ -117,6 +110,10 @@ void stopMotors() {
     digitalWrite(pin, LOW);
   }
   for (uint8_t pin : MOTOR_DIRECTION_PINS) digitalWrite(pin, LOW);
+  if (lastLeftMotorCommand != 0 || lastRightMotorCommand != 0)
+    logLine("MOTOR", "left=0 right=0 STOP");
+  lastLeftMotorCommand = 0;
+  lastRightMotorCommand = 0;
 }
 
 bool fail(const char *reason) {
@@ -163,6 +160,13 @@ void drive(int left, int right) {
   if (aborted) return;
   setMotor(MOTOR_DIRECTION_PINS[2], MOTOR_DIRECTION_PINS[3],
            MOTOR_ENABLE_PINS[1], right, INVERT_RIGHT);
+  if (!aborted &&
+      (left != lastLeftMotorCommand || right != lastRightMotorCommand)) {
+    lastLeftMotorCommand = left;
+    lastRightMotorCommand = right;
+    logPrefix("MOTOR"); Serial.print("left="); Serial.print(left);
+    Serial.print(" right="); Serial.println(right);
+  }
 }
 
 void straight(int pwm) {
@@ -205,6 +209,9 @@ bool servoAngle(unsigned index, int degrees) {
   uint16_t offTick = uint16_t((pulseUs * 4096UL) / 20000UL);
   if (!pcaWriteServo(SERVO_CHANNELS[index], offTick))
     return fail("PCA9685 servo channel write failed.");
+  logPrefix("SERVO"); Serial.print("channel=");
+  Serial.print(SERVO_CHANNELS[index]); Serial.print(" target=");
+  Serial.print(degrees); Serial.println(" deg");
   return true;
 }
 
@@ -221,9 +228,9 @@ bool testServoChannel(unsigned channel) {
       !pcaWriteServo(channel, SERVO_TEST_CENTER_TICKS) ||
       !waitChecked(600))
     return aborted ? false : fail("Servo test I2C write failed.");
-  // Restore the mission's closed position if this is a configured channel.
+  // Restore the mission's rest position if this is a configured channel.
   for (unsigned i = 0; i < 5; ++i)
-    if (SERVO_CHANNELS[i] == channel && !servoAngle(i, CLOSED_DEG[i])) return false;
+    if (SERVO_CHANNELS[i] == channel && !servoAngle(i, REST_DEG[i])) return false;
   stopMotors();
   logLine("INFO", "Servo test finished; motors remained off.");
   return true;
@@ -247,9 +254,28 @@ float rangeMm() {
   digitalWrite(TRIG_PIN, LOW);
   uint32_t us = pulseIn(ECHO_PIN, HIGH, ECHO_TIMEOUT_US);
   // Missing echo is UNKNOWN, never an instruction to continue moving.
-  if (us == 0) return NAN;
+  if (us == 0) {
+    logLine("ULTRASONIC", "no echo");
+    return NAN;
+  }
   float mm = us * 0.343f / 2.0f;
+  logValue("ULTRASONIC", "distance: ", mm, "mm");
   return mm >= 20 && mm <= 4000 ? mm : NAN;
+}
+
+bool readFrontIrSensors(bool logReading = true) {
+  static int lastState = -1;
+  bool leftBlack = digitalRead(IR_PINS[0]) == BLACK_LEVEL;
+  bool rightBlack = digitalRead(IR_PINS[1]) == BLACK_LEVEL;
+  int state = (leftBlack ? 2 : 0) | (rightBlack ? 1 : 0);
+  if (logReading && state != lastState) {
+    lastState = state;
+    logPrefix("IR"); Serial.print("front-left=");
+    Serial.print(leftBlack ? "BLACK" : "CLEAR");
+    Serial.print(" front-right=");
+    Serial.println(rightBlack ? "BLACK" : "CLEAR");
+  }
+  return leftBlack && rightBlack;
 }
 
 bool settle() { stopMotors(); return waitChecked(SETTLE_MS); }
@@ -259,7 +285,7 @@ bool validatePinAssignments() {
     MOTOR_DIRECTION_PINS[0], MOTOR_DIRECTION_PINS[1],
     MOTOR_DIRECTION_PINS[2], MOTOR_DIRECTION_PINS[3],
     MOTOR_ENABLE_PINS[0], MOTOR_ENABLE_PINS[1], TRIG_PIN, ECHO_PIN,
-    IR_PINS[0], IR_PINS[1], START_PIN, I2C_SDA_PIN, I2C_SCL_PIN
+    IR_PINS[0], IR_PINS[1], I2C_SDA_PIN, I2C_SCL_PIN
   };
   constexpr unsigned pinCount = sizeof(pins) / sizeof(pins[0]);
   for (unsigned i = 0; i < pinCount; ++i)
@@ -278,14 +304,7 @@ bool startupSelfCheck() {
   logValue("INFO", "Ultrasonic distance: ", distance, "mm");
   if (!pcaPresent()) return fail("PCA9685 stopped responding at address 0x40.");
   logLine("INFO", "PCA9685 I2C response confirmed.");
-  for (unsigned i = 0; i < 2; ++i) {
-    logPrefix("INFO"); Serial.print(i == 0 ? "Left IR: " : "Right IR: ");
-    Serial.println(digitalRead(IR_PINS[i]) == BLACK_LEVEL ? "BLACK" : "CLEAR");
-  }
-  if (digitalRead(START_PIN) == LOW)
-    logLine("WARN", "START is held. Release it before trying to start.");
-  else
-    logLine("INFO", "START input is released.");
+  readFrontIrSensors();
   logLine("INFO", "L298N PWM outputs initialized and motors held off.");
   logLine("WARN", "No motor feedback sensor: rotation and driver current are not verified.");
   logLine("WARN", "PCA9685 has no position feedback: servo movement is not verified.");
@@ -372,8 +391,7 @@ bool turn90(bool left) {
 }
 
 bool bothIrSensorsBlack() {
-  return digitalRead(IR_PINS[0]) == BLACK_LEVEL &&
-         digitalRead(IR_PINS[1]) == BLACK_LEVEL;
+  return readFrontIrSensors();
 }
 
 bool middleMarker() {
@@ -406,7 +424,7 @@ bool middleMarker() {
       }
       stable = raw;
     }
-    straight(SLOW_PWM); // slower crossing gives the rear sensor time to sample
+    straight(SLOW_PWM); // slower crossing gives the front sensors time to sample
     delay(2);
   }
   return fail("Middle marker not detected before timeout.");
@@ -416,45 +434,30 @@ bool releaseLoad(unsigned index) {
   if (index >= 5 || released[index]) return fail("Invalid or repeated release.");
   if (!settle()) return false;
   logPrefix("INFO"); Serial.print("Release servo "); Serial.println(index + 1);
-  if (!servoAngle(index, OPEN_DEG[index])) return false;
+  if (!servoAngle(index, RELEASE_DEG[index])) return false;
   released[index] = true;
   if (!waitChecked(RELEASE_MS)) return false;
   // Leave the flap/gripper open. Close only on reset before reloading.
   return waitChecked(SETTLE_MS);
 }
 
-bool releaseBeams() {
-  if (released[3] || released[4]) return fail("Repeated beam release.");
-  if (!settle()) return false;
-  logLine("INFO", "Opening both beam grippers.");
-  if (!servoAngle(3, OPEN_DEG[3])) return false;
-  released[3] = true;
-  if (!servoAngle(4, OPEN_DEG[4])) return false;
-  released[4] = true;
-  return waitChecked(RELEASE_MS); // no further drive or closing commands
-}
-
 bool runMission() {
   logLine("INFO", "Mission started.");
-  if (!isfinite(BEAM_LANE_SHIFT_MM)) return fail("Invalid beam lane shift.");
-  logLine("INFO", "Top right -> top left wall; turn down; drop two kits.");
+  logLine("INFO", "Move to 20 cm wall stop, turn left, release two kits.");
   if (!approachWall() || !turn90(true) ||
       !moveMm(FIRST_OUTLET_CORRECTION_MM) || !releaseLoad(0)) return false;
+  logLine("INFO", "Seek black tape with both front IR sensors; release six kits.");
   if (!middleMarker() || !moveMm(MIDDLE_OUTLET_CORRECTION_MM) ||
       !releaseLoad(1)) return false;
-  logLine("INFO", "Bottom left wall: drop last two kits.");
+  logLine("INFO", "Move to the next 20 cm wall stop; release two kits.");
   if (!approachWall() ||
       !moveMm(LAST_OUTLET_CORRECTION_MM) || !releaseLoad(2)) return false;
-  logLine("INFO", "Turn left to face right; align lane above bottom-right quarantine.");
-  if (!turn90(true)) return false;
-  if (fabsf(BEAM_LANE_SHIFT_MM) >= 1) {
-    bool north = BEAM_LANE_SHIFT_MM > 0;
-    if (!turn90(north) || !moveMm(fabsf(BEAM_LANE_SHIFT_MM)) ||
-        !turn90(!north)) return false;
-  }
-  if (!approachWall()) return false;
-  logLine("INFO", "Open both beam grippers; drop beams and stop.");
-  if (!releaseBeams()) return false;
+  logLine("INFO", "Turn left and move to the next 20 cm wall stop.");
+  if (!turn90(true) || !approachWall()) return false;
+  logLine("INFO", "Turn left and release the first beam.");
+  if (!turn90(true) || !releaseLoad(3)) return false;
+  logLine("INFO", "Turn left and release the second beam.");
+  if (!turn90(true) || !releaseLoad(4)) return false;
   logLine("INFO", "Mission complete. Reset and reload before another run.");
   return true;
 }
@@ -473,7 +476,6 @@ void setup() {
   pinMode(TRIG_PIN, OUTPUT); digitalWrite(TRIG_PIN, LOW);
   pinMode(ECHO_PIN, INPUT);
   for (uint8_t pin : IR_PINS) pinMode(pin, INPUT);
-  pinMode(START_PIN, INPUT_PULLUP);
   if (!validatePinAssignments()) return;
   // ENA and ENB use the ESP32 LEDC channels 0 and 1.
   for (unsigned i = 0; i < 2; ++i) {
@@ -488,49 +490,26 @@ void setup() {
   logLine("INFO", "L298N PWM channels initialized.");
   if (!initializeServoDriver()) return;
   for (unsigned i = 0; i < 5; ++i) {
-    if (!servoAngle(i, CLOSED_DEG[i])) return;
+    if (!servoAngle(i, REST_DEG[i])) return;
   }
-  logLine("INFO", "PCA9685 channels 0 through 4 commanded closed.");
+  logLine("INFO", "PCA9685 channels 0 through 4 commanded to rest positions.");
   if (!waitChecked(800)) return;
   logPrefix("INFO"); Serial.print("Motor: "); Serial.print(MOTOR_RATED_VOLTAGE);
   Serial.print(" V, "); Serial.print(MOTOR_RATED_RPM);
   Serial.println(" RPM through L298N.");
   if (!startupSelfCheck()) return;
-  logLine("INFO", "Ready. Send 0..9 or A..F to test one servo channel with motors off.");
-  logLine("INFO", "Load bins 2/6/2. Press START or send s. x stops.");
+  logLine("INFO", "Initialization complete. Starting mission automatically.");
+  attempted = true;
+  if (!runMission() && !aborted) fail("Mission stopped without a reported fault.");
+  stopMotors();
 }
 
 void loop() {
   stopMotors();
-  if (aborted || attempted || !startupCheckPassed) { delay(10); return; }
-  bool start = false;
-  bool pressed = digitalRead(START_PIN) == LOW;
-  if (!pressed) { startArmed = true; startHeld = false; }
-  else if (startArmed) {
-    if (!startHeld) { startHeld = true; startPressMs = millis(); }
-    start = millis() - startPressMs >= 40;
-  }
   while (Serial.available()) {
     char c = Serial.read();
     if (c == 'x' || c == 'X') { fail("Serial stop."); return; }
-    int testChannel = servoTestChannelFromCommand(c);
-    if (testChannel >= 0) {
-      start = false;
-      startArmed = false; // require a fresh button release after a servo test
-      if (!testServoChannel(unsigned(testChannel))) return;
-      continue;
-    }
-    if (c == 's' || c == 'S') {
-      logLine("INFO", "Serial start command received.");
-      start = true;
-    }
   }
-  if (start && checkStop()) {
-    logLine("INFO", "Start accepted.");
-    attempted = true;
-    if (!runMission() && !aborted) fail("Mission stopped without a reported fault.");
-    stopMotors();
-  }
-  delay(5);
+  delay(10);
 }
 

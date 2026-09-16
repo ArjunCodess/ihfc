@@ -22,7 +22,7 @@ TwoWire Wire;
 void resetTest() {
   tick=0; lastPingMs=0; aborted=false; attempted=false;
   for(auto &attached:motorPwmAttached) attached=true;
-  startArmed=false; startHeld=false; startupCheckPassed=true; startPressMs=0;
+  startupCheckPassed=true;
   movingMs=0; failingWritePin=-1; readHook=nullptr; logHook=nullptr; timeHook=nullptr;
   wireFail=false; pcaDevicePresent=true; wireSda=-1; wireScl=-1; servoTicks.clear();
   servoDriverReady=true;
@@ -36,24 +36,6 @@ void stopped() {
   for(auto p:MOTOR_DIRECTION_PINS) assert(levels[p]==LOW);
 }
 int main() {
-  resetTest();
-  startupCheckPassed=false;
-  setup();
-  assert(!aborted && startupCheckPassed);
-  assert(wireSda==21 && wireScl==22 && servoDriverReady);
-  assert(pwm.frequency()==50);
-  stopped();
-  resetTest(); Serial.input.push_back('0');
-  loop();
-  assert(!aborted && !attempted && servoTicks[0]==221); stopped();
-  resetTest(); Serial.input.push_back('A');
-  loop();
-  assert(!aborted && !attempted && servoTicks[10]==SERVO_TEST_CENTER_TICKS);
-  stopped();
-  resetTest(); tick=100; startArmed=true; startHeld=true; startPressMs=0;
-  readHook=[](int pin) { return pin==START_PIN ? LOW : HIGH; };
-  Serial.input.push_back('0'); loop();
-  assert(!aborted && !attempted && !startArmed); stopped();
   resetTest();
   startupCheckPassed=false; servoDriverReady=false; pcaDevicePresent=false;
   setup();
@@ -96,7 +78,7 @@ int main() {
   for(unsigned i=0;i<5;++i) assert(releaseLoad(i));
   for(bool r:released) assert(r);
   for(unsigned i=0;i<5;++i) {
-    uint32_t pulse=SERVO_MIN_US+(SERVO_MAX_US-SERVO_MIN_US)*OPEN_DEG[i]/180;
+    uint32_t pulse=SERVO_MIN_US+(SERVO_MAX_US-SERVO_MIN_US)*RELEASE_DEG[i]/180;
     assert(servoTicks[SERVO_CHANNELS[i]]==int(pulse*4096UL/20000UL));
   }
   assert(!releaseLoad(0)); stopped();
@@ -127,11 +109,6 @@ int main() {
   resetTest(); wireFail=true; assert(!servoAngle(0,90)); stopped();
   resetTest(); aborted=true; assert(!servoAngle(0,90));
   resetTest();
-  readHook=[](int pin){return pin==START_PIN ? LOW : HIGH;};
-  for(int i=0;i<20;++i) loop(); // held during boot cannot start
-  assert(!attempted && movingMs==0);
-
-  resetTest();
   readHook=[](int pin) {
     bool ir = pin==IR_PINS[0] || pin==IR_PINS[1];
     return ir && (tick<140 || tick>=300) ? LOW : HIGH;
@@ -161,25 +138,18 @@ int main() {
   resetTest();
   timeHook=[](){if(tick>=150 && Serial.input.empty()) Serial.input.push_back('x');};
   assert(!moveMm(180)); assert(movingMs<200); stopped();
-  resetTest();
-  readHook=[](int){return HIGH;}; loop();
-  readHook=[](int pin){return pin==START_PIN ? LOW : HIGH;};
-  for(int i=0;i<4;++i) loop(); // short bounce
-  readHook=[](int){return HIGH;}; loop();
-  assert(!attempted && movingMs==0);
-
   // Integrated route: wall approach, two left turns, line marker, 2/6/2 releases.
   resetTest();
   int phase=0; uint32_t markerStart=0;
   logHook=[&](std::string s){
-    if(s.find("Top right ->") == 0) {
+    if(s.find("Move to 20 cm wall stop") == 0) {
       phase=1; echoes={echo(800),echo(200)};
     }
-    if(s.find("Left middle:") == 0) {phase=2; markerStart=tick;}
-    if(s.find("Bottom left wall:") == 0) {
+    if(s.find("Seek black tape") == 0) {phase=2; markerStart=tick;}
+    if(s.find("Move to the next 20 cm wall stop") == 0) {
       phase=3; echoes={echo(800),echo(200)};
     }
-    if(s.find("Turn left to face right;") == 0) {
+    if(s.find("Turn left and move to the next 20 cm wall stop") == 0) {
       phase=4;
       echoes={echo(800),echo(200)};
     }
@@ -188,17 +158,11 @@ int main() {
     bool ir = pin==IR_PINS[0] || pin==IR_PINS[1];
     return ir && phase==2 && tick-markerStart>=150 ? LOW : HIGH;
   };
-  Serial.input.push_back('s'); loop();
-  assert(attempted);
+  attempted=true;
+  assert(runMission());
   assert(released[0] && released[1] && released[2]);
   assert(released[3] && released[4] && !aborted);
   stopped();
-  uint32_t previousMotion=movingMs;
-  Serial.input.push_back('s'); loop(); assert(movingMs==previousMotion);
-  resetTest();
-  assert(releaseBeams()); assert(movingMs==0);
-  assert(released[3] && released[4]); stopped();
-  assert(!releaseBeams()); stopped();
-  std::cout<<"PASS: full route, open-only servos, stationary beam release, motor/sensor/stop regressions\n";
+  std::cout<<"PASS: automatic route, directional bin servos, motor/sensor/stop regressions\n";
 }
 

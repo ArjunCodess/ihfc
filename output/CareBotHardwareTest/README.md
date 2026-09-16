@@ -15,7 +15,7 @@ No command or START press is needed for the automatic test. Optional serial comm
 | `i` | Scan I²C addresses |
 | `p` | PCA9685 and channels 0–4 register values |
 | `u` | One ultrasonic echo and distance |
-| `r` | Both IR inputs and START button |
+| `r` | Both front IR inputs |
 | `0`–`9`, `A`–`F` | Move one PCA9685 channel; `A` is 10 and `F` is 15 |
 | `t` | Move all 16 channels one by one to locate connected servos |
 | `T` | Rerun the automatic servo-and-motor test |
