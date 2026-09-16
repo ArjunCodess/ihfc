@@ -6,11 +6,10 @@
 | L298N dual motor-driver module | 1 | Drives the left and right motor pairs; verify combined stall-current capacity for each channel. |
 | 12 V DC geared motor, 500 RPM | 4 | One motor at each wheel in the official photographs. Two motors act together on each side. |
 | Front ultrasonic sensor | 1 | Measures the distance to the wall. Wiring assumes an HC-SR04-type TRIG/ECHO interface. |
-| Rear IR reflectance sensor, digital output | 2 | Point downward and confirm transverse black markers together. Outputs must be ESP32-compatible. |
+| Front IR reflectance sensor, digital output | 2 | Point downward at the front and confirm black arena tape together. Outputs must be ESP32-compatible. |
 | PCA9685 16-channel servo driver | 1 | Drives all five servos at 50 Hz over I2C; default address `0x40`. |
 | Bin flap positional servo | 3 | Opens bins carrying 2, 6 and 2 kits; exact servo models depend on flap load. |
 | Beam release positional servo | 2 | Opens the first and second beam holders; exact servo models depend on grip force. |
-| Start pushbutton | 1 | Starts the programmed route. No separate stop pushbutton is used. |
 | Main battery power switch | 1 | Disconnects power independently of the program. |
 | Drive wheel | 4 | Four wheels are visible in the official photographs. |
 | Motor mount | 4 | Fixes the four motors to the chassis. |

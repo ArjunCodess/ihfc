@@ -17,14 +17,13 @@ The photographs in `images/` are the official record of the built robot. The Ble
 | Two wheels and one caster | Four driven wheels | Component list and submission document now use four geared motors and four wheels. |
 | One front beam and one right beam | The model does not support those exact names clearly | Servo channels 3 and 4 are now called first and second beam releases. |
 | Two motor loads on one L298N | Four geared motors are visible | The program controls left and right side pairs. The L298N must be checked against the combined startup and stall current of two motors per channel. |
-| Two mission programs | One competition program was requested | `MinimalistCareBot.ino` is the competition program. The other sketches are development and bench-test files. |
 | Drawn top-view robot in the submission PDF | User supplied official photographs | The drawing was removed and the three photographs in `images/` were added. |
 | Fixed 460 by 260 mm size and mass below 3 kg | No scale or measured mass was supplied | These estimates were removed. The built robot must be measured before submission. |
 
 ## Details not confirmed by the images
 
 - The two downward-facing IR sensors are not clearly visible.
-- The start button and main power switch are not clearly identifiable.
+- The main power switch is not clearly identifiable.
 - The complete linkage for both beam releases is not clear.
 - The exact motor, battery, regulator and servo current ratings are not readable.
 - The finished length, width, height and mass are not known.

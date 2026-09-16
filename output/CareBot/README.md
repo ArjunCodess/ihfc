@@ -1,7 +1,7 @@
-# Development and test pack
+# CareBot project pack
 
-This folder contains the guarded development firmware, diagnostics, route simulations and older showcase notes. It is useful for testing, but it is not the single competition program.
+This folder contains the robot firmware, wiring guide, calibration notes, and supporting documentation.
 
-The competition upload is `../MinimalistCareBot/MinimalistCareBot.ino`. Its matching wiring sheet is `../MinimalistCareBot/WIRING.md`. The current submission PDF is `../pdf/Design_Details_Document_ST-77.pdf`.
+Upload `CareBotESP32/CareBotESP32.ino`. Its matching wiring sheet is `WIRING.md`. The current submission PDF is `../pdf/Design_Details_Document_ST-77.pdf`.
 
-`CareBotESP32/CareBotESP32.ino` remains useful for startup checks, logging, fault handling and servo tests. `VERIFICATION.md` records software checks for that development version.
+The program starts automatically after the battery powers the ESP32. `VERIFICATION.md` records its software checks.

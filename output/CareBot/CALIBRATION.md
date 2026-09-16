@@ -23,8 +23,8 @@ The source defaults below are examples, not measurements of the assembled robot.
 | `MIDDLE_OUTLET_CORRECTION_MM` | 0 | __________ |
 | `LAST_OUTLET_CORRECTION_MM` | 0 | __________ |
 | `BEAM_LANE_SHIFT_MM` | 0 | __________ |
-| `CLOSED_DEG`, bins A/middle/B, right/front grippers | 15, 15, 15, 35, 35 | __________ |
-| `OPEN_DEG`, same order | 100, 100, 100, 110, 110 | __________ |
+| `REST_DEG`, bins A/middle/B, beam releases | 90, 90, 90, 35, 35 | __________ |
+| `RELEASE_DEG`, same order | 20, 160, 20, 110, 110 | __________ |
 | `SERVO_MIN_US` / `SERVO_MAX_US` | 1000 / 2000 | __________ |
 | `RELEASE_MS` | 1100 | __________ |
 

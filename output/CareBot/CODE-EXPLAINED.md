@@ -10,14 +10,14 @@ The robot follows a stored sequence. It uses wall distance and a black marker to
 4. Turn left to face right. Apply the optional approach-lane shift, then drive toward the right wall.
 5. Stop at the same 20 cm threshold. Send open commands to both grippers, wait for the beams to drop, and remain stopped.
 
-The left-side separator marks entry to the middle area. A configurable offset accounts for the rear sensor's position and where the middle bin should drop its kits.
+The left-side separator marks entry to the middle area. A configurable offset accounts for the front sensors' position and where the middle bin should drop its kits.
 
 ## Main functions
 
 | Function | What it does |
 | --- | --- |
-| `setup()` | Configures GPIO and motor PWM, initializes the PCA9685, closes the servos, then waits for the start command. |
-| `loop()` | Debounces START, accepts Serial commands, and allows one mission attempt per reset. |
+| `setup()` | Configures GPIO and motor PWM, initializes the PCA9685, moves the servos to rest, checks the sensors, and starts one route. |
+| `loop()` | Holds the motors stopped after the route and accepts Serial `x`. |
 | `runMission()` | Executes the complete route in order. |
 | `rangeMm()` | Sends an ultrasonic trigger and converts the echo duration to millimetres. No echo returns an invalid reading. |
 | `approachWall()` | Drives forward while valid ultrasonic readings are above 200 mm. Stops on the first reading at or below 200 mm. |
@@ -32,13 +32,13 @@ The left-side separator marks entry to the middle area. A configurable offset ac
 | `releaseBeams()` | Opens both grippers at the same stationary pose. |
 | `fail()` / `checkStop()` | Stop the motors on a fault or a connected Serial `x` command. |
 | `logLine()` / `logValue()` | Write timestamped INFO, WARN and ERROR messages at 115200 baud. |
-| `startupSelfCheck()` | Check configuration, motor PWM, PCA9685 response, ultrasonic response, IR state and START before arming the mission. |
+| `startupSelfCheck()` | Checks configuration, motor PWM, PCA9685 response, ultrasonic response, and both front IR states before movement. |
 
 ## What the five servos do
 
-All servo signals come from one PCA9685 board over ESP32 GPIO21/SDA and GPIO22/SCL. Channels 0, 1 and 2 open the three complete bins; the program does not count individual kits. Loading those bins with 2, 6 and 2 sets the delivered quantities. Channels 3 and 4 open the first and second beam releases. Their commands are issued back-to-back, so exact mechanical simultaneity is not assumed.
+All servo signals come from one PCA9685 board over ESP32 GPIO21/SDA and GPIO22/SCL. Channels 0, 1 and 2 open the three complete bins; the program does not count individual kits. Channels 0 and 2 move from 90 degrees down to 20 degrees for the two 2-bin MG995 mechanisms. Channel 1 moves from 90 degrees up to 160 degrees for the 6-bin mechanism. Channels 3 and 4 operate the beam releases.
 
-The mission maps five planned servo functions, but only two servos are connected at present. Send a channel character `0` through `9` or `A` through `F` to test a socket with the motors off. This command moves the selected channel between 225 and 375 PCA9685 ticks and restores its mission closed position if it is one of channels 0 through 4. Use empty mechanisms for this test.
+The mission logs every servo target, motor command, valid or missing ultrasonic reading, and change in the two front IR states at 115200 baud.
 
 The code records which loads have been released and rejects a repeated release. It does not have sensors to confirm that a bin is empty or that a beam landed upright.
 
