@@ -1,4 +1,4 @@
-// Simple CareBot route for the ESP32 and wiring in output/CareBot/WIRING.md.
+// Simple CareBot route for the ESP32 and wiring in this folder's WIRING.md.
 // Press the START button on GPIO32 to run once. Send x over Serial to stop.
 // The 500 RPM motors have no encoder: PWM 102 is only a starting estimate for
 // 200 RPM. Adjust DRIVE_PWM after measuring the loaded robot's wheel speed.
