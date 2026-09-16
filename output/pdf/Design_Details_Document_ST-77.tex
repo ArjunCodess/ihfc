@@ -44,9 +44,9 @@
 
 The challenge represents a public health emergency. Our robot handles two jobs. It delivers ten medical kits in groups of 2, 6, and 2. It also carries and releases two wooden beams for the quarantine zone. These tasks move supplies and barriers without a person entering the field during the round.
 
-The robot starts completely inside the official $480 \times 280$ mm starting zone. A team member switches it on and presses one button. From that point, the ESP32 runs the full route. The robot uses an ultrasonic sensor for wall distance, two downward-facing IR sensors for a black tape checkpoint, and calibrated turn timing. It stops after the final beam release.
+The robot starts completely inside the official $480 \times 280$ mm starting zone. Connecting the battery powers the ESP32, initializes the hardware, and starts the route automatically. The robot uses an ultrasonic sensor for wall distance, two downward-facing front IR sensors for black arena tape, and calibrated turn timing. It stops after the final beam release.
 
-\note{\textbf{One competition program:} The submitted robot uses \texttt{MinimalistCareBot.ino}. The other sketches in the repository are kept for hardware checks, fault testing, and development. They are not extra operating modes for the competition robot.}
+\note{\textbf{Robot program:} The submitted source is \texttt{CareBotESP32.ino}. It logs ultrasonic readings, both front IR states, servo targets, and motor commands at 115200 baud.}
 
 \tightsection{Tasks completed by the program}
 
@@ -66,7 +66,7 @@ The official robot is the four-wheel machine shown in the photographs on the nex
 
 The photographs show four geared drive units, one at each wheel. The program still controls two drive sides. The two left motors act as one left-side pair, and the two right motors act as one right-side pair. The final motor driver must safely handle the combined startup and stall current of each pair.
 
-Three visible top-mounted servos operate the kit sections. Two more servo channels are reserved for the beam-release mechanisms. The supplied images do not show the downward IR sensors or every beam linkage clearly, so their final brackets must be checked on the actual robot before the run.
+Three visible top-mounted servos operate the kit sections. Two more servo channels are reserved for the beam-release mechanisms. The two downward IR sensors are mounted at the front for black tape detection. The supplied images do not show every beam linkage clearly.
 
 \textbf{Size and mass.} The supplied photographs do not provide a reliable scale or mass reading. The complete robot, including loaded kits and beams, is checked as one assembly against the $480 \times 280$ mm starting zone.
 
@@ -112,15 +112,14 @@ L298N dual motor driver & 1 & Controls the left and right motor pairs. Its curre
 PCA9685 servo driver & 1 & Sends 50 Hz commands to five servos over I$^2$C. \\
 Positional servo & 5 & Three kit releases and two beam releases. \\
 Ultrasonic sensor & 1 & Measures the distance to a wall in front of the robot. \\
-Digital IR sensor & 2 & Detects a black tape stripe under the robot. \\
-Start pushbutton & 1 & Starts one autonomous run. \\
+Digital IR sensor & 2 & Detects black arena tape at the front of the robot. \\
 Main power switch & 1 & Provides an accessible physical stop. \\
 \bottomrule
 \end{tabular}
 
 \tightsection{Kit and beam mechanisms}
 
-The three bins are loaded with 2, 6, and 2 wooden kits. Each kit is $25 \times 25 \times 20$ mm. Servo channels 0, 1, and 2 open the three release mechanisms. Gravity drops each complete group while the robot is stopped.
+The three bins are loaded with 2, 6, and 2 wooden kits. Each kit is $25 \times 25 \times 20$ mm. Servo channels 0, 1, and 2 rest at 90 degrees. The MG995 servos on channels 0 and 2 move in the negative direction to 20 degrees for the two 2-bin releases. Channel 1 moves in the positive direction to 160 degrees for the 6-bin release.
 
 Two holders carry the quarantine beams. Each beam has a $60 \times 20$ mm section. Servo channel 3 releases the first beam, and channel 4 releases the second. The program turns left between the two releases. The holder positions must allow each beam to leave the robot cleanly and stand in the required location.
 
@@ -134,9 +133,8 @@ GPIO / channel & Connection & Job \\
 27, 14 & L298N IN3, IN4 & Right-side motor-pair direction \\
 33, 17 & L298N ENA, ENB & Left and right PWM speed \\
 23, 34 & Ultrasonic TRIG, ECHO & Wall-distance measurement \\
-35, 16 & Left and right IR outputs & Black tape detection \\
+35, 16 & Front-left and front-right IR & Black tape detection \\
 21, 22 & PCA9685 SDA, SCL & Servo-driver I$^2$C link \\
-32 & Pushbutton to ground & Start input with internal pull-up \\
 PCA 0, 1, 2 & Three kit servos & 2-kit, 6-kit, and 2-kit release \\
 PCA 3, 4 & Two beam servos & First and second beam release \\
 \bottomrule
@@ -151,7 +149,7 @@ The motors use a suitable battery through the motor driver. The ESP32 uses a reg
 \newpage
 \tightsection{5. Autonomous working and calculations}
 
-On power-up, the motors remain off. The ESP32 initializes the PCA9685 at address \texttt{0x40}, sets the five servo channels to their closed positions, and waits for the GPIO32 button. One press starts the route below.
+On power-up, the motors remain off while the ESP32 initializes its PWM outputs, reads the sensors, and sets the five PCA9685 channels to their rest positions. It then starts the route automatically. GPIO32 is unused.
 
 \begin{enumerate}
   \item Move forward until the ultrasonic reading is 20 cm or less.
@@ -163,7 +161,7 @@ On power-up, the motors remain off. The ESP32 initializes the PCA9685 at address
   \item Turn left again, open channel 4 for the second beam, and stop permanently.
 \end{enumerate}
 
-The robot is autonomous after the button press. The sensors end the forward legs, and a calibrated time controls each turn. The program stops if an ultrasonic echo disappears, a wall is reached before the tape checkpoint, or a movement exceeds its timeout.
+The robot is autonomous from power-up. Its first action is to move forward while logging ultrasonic readings. It stops at the first valid distance of 20 cm or less. The front IR sensors detect the black tape checkpoint, and calibrated time controls each turn. The program stops on a missing echo, an early wall, or a movement timeout.
 
 \tightsection{Motor speed estimate}
 
@@ -186,9 +184,9 @@ d=\frac{t\times0.0343}{2}\ \text{cm}.
 \]
 The 20 cm threshold is measured from the sensor face. Wheel coasting and the front bracket reduce the actual free space. Left turns currently use 580 ms of opposite wheel motion. That value must be adjusted with the loaded four-wheel chassis because skid steering depends on tyre grip, weight, and battery voltage.
 
-\tightsection{Repository files}
+\tightsection{Source repository}
 
-The competition upload is \texttt{MinimalistCareBot.ino}, stored in the \texttt{output/MinimalistCareBot} folder. \texttt{CareBotESP32.ino} is a development and fault-checking version. \texttt{CareBotHardwareTest.ino} is a bench diagnostic. Uploading either test sketch temporarily replaces the competition program on the ESP32.
+The robot source is \texttt{CareBotESP32.ino} in the \texttt{output/CareBot} folder. The Git repository is \href{https://github.com/ArjunCodess/ihfc}{ArjunCodess/ihfc}.
 
 \tightsection{References}
 
